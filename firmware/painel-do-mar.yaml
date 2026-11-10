@@ -1,0 +1,726 @@
+# Painel do Mar, versão para presente
+# ESP32-C3 Super Mini + e-ink WeAct 2,9" preta e branca, 296 × 128 (controlador SSD1680)
+# Não depende de Home Assistant nem de servidor: o Wi-Fi e o lugar são configurados pelo celular.
+# Dados: Open-Meteo (sem cadastro e sem chave)
+
+substitutions:
+  rede_config: "Painel do Mar"
+  senha_config: "configurar"
+
+esphome:
+  name: painel-do-mar
+  friendly_name: Painel do Mar
+  on_boot:
+    # roda depois da tela estar pronta e antes do Wi-Fi
+    priority: 300
+    then:
+      - lambda: id(modo) = 3;
+      - component.update: tela
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+ota:
+  - platform: esphome
+
+wifi:
+  # Nenhuma rede gravada: na primeira vez, a placa abre a rede de configuração
+  # e a pessoa escolhe o Wi-Fi da casa pelo celular. A escolha fica salva na placa.
+  output_power: 13dB
+  ap:
+    ssid: "${rede_config}"
+    password: "${senha_config}"
+    ap_timeout: 30s
+  on_connect:
+    - script.execute: depois_de_conectar
+
+captive_portal:
+
+# página da placa na rede da casa, onde a pessoa escolhe o lugar
+web_server:
+  port: 80
+  version: 3
+  # sem a janela de mensagens do sistema, que confunde quem não é técnico
+  log: false
+
+http_request:
+  timeout: 10s
+
+json:
+
+qr_code:
+  - id: qr_wifi
+    value: "WIFI:T:WPA;S:${rede_config};P:${senha_config};;"
+  - id: qr_pagina
+    value: "http://192.168.4.1/"
+
+globals:
+  # 0 dados, 1 configurar Wi-Fi, 2 endereço da página, 3 conectando
+  - id: modo
+    type: int
+    initial_value: "3"
+  - id: ja_conectou
+    type: bool
+    initial_value: "false"
+  - id: sem_wifi_desde
+    type: uint32_t
+    initial_value: "0"
+  - id: tem_lugar
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+  - id: lat
+    type: float
+    restore_value: yes
+    initial_value: "0"
+  - id: lon
+    type: float
+    restore_value: yes
+    initial_value: "0"
+  - id: tem_dados
+    type: bool
+    initial_value: "false"
+  - id: tem_mar
+    type: bool
+    initial_value: "false"
+  - id: falhou
+    type: bool
+    initial_value: "false"
+  - id: hora
+    type: std::string
+    initial_value: '""'
+  - id: dia_dados
+    type: int
+    initial_value: "0"
+  - id: onda_altura
+    type: float
+  - id: onda_direcao
+    type: float
+  - id: onda_periodo
+    type: float
+  - id: agua
+    type: float
+  - id: ar
+    type: float
+  - id: sensacao
+    type: float
+  - id: umidade
+    type: float
+  - id: tmax
+    type: float
+  - id: tmin
+    type: float
+  - id: nascer
+    type: std::string
+    initial_value: '""'
+  - id: por_sol
+    type: std::string
+    initial_value: '""'
+  - id: vento
+    type: float
+  - id: uv
+    type: float
+  - id: codigo_tempo
+    type: int
+  - id: mare
+    type: std::vector<float>
+
+# ---------- campos da página da placa ----------
+text:
+  - platform: template
+    id: lugar_busca
+    name: "1. Lugar (bairro, cidade ou coordenadas)"
+    icon: mdi:map-marker
+    web_server:
+      sorting_weight: 10
+    optimistic: true
+    restore_value: true
+    mode: text
+    max_length: 60
+    initial_value: ""
+  - platform: template
+    id: pais
+    name: "2. País (sigla de 2 letras)"
+    icon: mdi:flag
+    web_server:
+      sorting_weight: 20
+    optimistic: true
+    restore_value: true
+    mode: text
+    max_length: 2
+    initial_value: "BR"
+  - platform: template
+    id: nome_tela
+    name: "Nome na tela (deixe vazio para usar o do lugar)"
+    icon: mdi:format-title
+    web_server:
+      sorting_weight: 50
+    optimistic: true
+    restore_value: true
+    mode: text
+    max_length: 24
+    initial_value: ""
+  - platform: template
+    id: nome_auto
+    internal: true
+    optimistic: true
+    restore_value: true
+    mode: text
+    max_length: 40
+    initial_value: ""
+
+button:
+  - platform: template
+    name: "3. Salvar lugar"
+    icon: mdi:content-save
+    web_server:
+      sorting_weight: 30
+    on_press:
+      - script.execute: buscar_lugar
+
+text_sensor:
+  - platform: template
+    id: lugar_encontrado
+    name: "Lugar salvo"
+    icon: mdi:map-check
+    web_server:
+      sorting_weight: 40
+  - platform: wifi_info
+    ip_address:
+      id: ip_txt
+      name: "Endereço desta página"
+      web_server:
+        sorting_weight: 60
+      on_value:
+        - lambda: id(qr_pagina).set_value("http://" + x + "/");
+
+# ---------- lógica ----------
+script:
+  # primeira conexão depois de ligar: mostra o endereço da página por 30 segundos
+  - id: depois_de_conectar
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(ja_conectou);
+          then:
+            - lambda: if (id(modo) == 1) id(modo) = 0;
+            - script.execute: atualizar
+          else:
+            - lambda: |-
+                id(ja_conectou) = true;
+                id(modo) = 2;
+            - delay: 2s
+            - component.update: tela
+            - if:
+                condition:
+                  lambda: return id(tem_lugar);
+                then:
+                  - delay: 30s
+                  - lambda: id(modo) = 0;
+                  - script.execute: atualizar
+
+  - id: buscar_lugar
+    mode: single
+    then:
+      - lambda: |-
+          id(lugar_encontrado).publish_state("procurando...");
+      - if:
+          condition:
+            # coordenadas digitadas direto, como -22.97, -43.18
+            lambda: |-
+              std::string s = id(lugar_busca).state;
+              float a, b;
+              char c;
+              if (sscanf(s.c_str(), " %f , %f %c", &a, &b, &c) == 2 && fabsf(a) <= 90 && fabsf(b) <= 180) {
+                id(lat) = a; id(lon) = b;
+                id(nome_auto).make_call().set_value("Meu lugar").perform();
+                char buf[48]; snprintf(buf, sizeof(buf), "Coordenadas %.4f, %.4f", a, b);
+                id(lugar_encontrado).publish_state(buf);
+                return true;
+              }
+              return false;
+          then:
+            - script.execute: lugar_salvo
+          else:
+            - http_request.get:
+                url: !lambda |-
+                  std::string s = id(lugar_busca).state, out;
+                  const char *hex = "0123456789ABCDEF";
+                  for (unsigned char ch : s) {
+                    if (isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~') out += (char) ch;
+                    else { out += '%'; out += hex[ch >> 4]; out += hex[ch & 15]; }
+                  }
+                  return "https://geocoding-api.open-meteo.com/v1/search?count=10&language=pt&format=json&name=" + out;
+                capture_response: true
+                max_response_buffer_size: 8192
+                on_response:
+                  then:
+                    - if:
+                        condition:
+                          lambda: |-
+                            if (response->status_code != 200) return false;
+                            std::string quero = id(pais).state;
+                            for (auto &ch : quero) ch = toupper(ch);
+                            bool achou = false;
+                            json::parse_json(body, [&](JsonObject root) -> bool {
+                              JsonArray res = root["results"];
+                              if (res.isNull() || res.size() == 0) return false;
+                              JsonObject esc = res[0];
+                              for (JsonObject r : res) {
+                                std::string cc = r["country_code"] | "";
+                                if (!quero.empty() && cc == quero) { esc = r; break; }
+                              }
+                              id(lat) = esc["latitude"] | 0.0f;
+                              id(lon) = esc["longitude"] | 0.0f;
+                              std::string nome = esc["name"] | "";
+                              std::string reg = esc["admin1"] | "";
+                              std::string pa = esc["country"] | "";
+                              id(nome_auto).make_call().set_value(nome).perform();
+                              std::string desc = nome;
+                              if (!reg.empty()) desc += ", " + reg;
+                              if (!pa.empty()) desc += ", " + pa;
+                              id(lugar_encontrado).publish_state(desc);
+                              achou = true;
+                              return true;
+                            });
+                            if (!achou) id(lugar_encontrado).publish_state("Não encontrei esse lugar. Tente outro nome.");
+                            return achou;
+                        then:
+                          - script.execute: lugar_salvo
+                on_error:
+                  then:
+                    - lambda: id(lugar_encontrado).publish_state("Sem resposta da busca. Tente de novo.");
+
+  - id: lugar_salvo
+    then:
+      - lambda: |-
+          id(tem_lugar) = true;
+          id(tem_dados) = false;
+          id(modo) = 0;
+          ESP_LOGI("lugar", "Lugar salvo: %.4f, %.4f", id(lat), id(lon));
+      - script.execute: atualizar
+
+  - id: atualizar
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return !id(tem_lugar) || id(modo) != 0;
+          then:
+            - script.stop: atualizar
+      - wait_until:
+          condition:
+            wifi.connected:
+          timeout: 60s
+      - lambda: |-
+          id(falhou) = false;
+          id(tem_mar) = false;
+      # previsão do tempo: obrigatória
+      - http_request.get:
+          url: !lambda |-
+            char u[400];
+            snprintf(u, sizeof(u), "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&cell_selection=nearest"
+              "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,uv_index"
+              "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=1&timezone=auto", id(lat), id(lon));
+            return std::string(u);
+          capture_response: true
+          max_response_buffer_size: 4096
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("tempo", "Resposta HTTP %d", response->status_code);
+                    id(falhou) = true;
+                    return;
+                  }
+                  int fuso = 0;
+                  bool ok = json::parse_json(body, [&](JsonObject root) -> bool {
+                    JsonObject atual = root["current"];
+                    if (atual.isNull()) return false;
+                    fuso = root["utc_offset_seconds"] | 0;
+                    id(ar) = atual["temperature_2m"] | NAN;
+                    id(sensacao) = atual["apparent_temperature"] | NAN;
+                    id(umidade) = atual["relative_humidity_2m"] | NAN;
+                    id(codigo_tempo) = atual["weather_code"] | -1;
+                    id(vento) = atual["wind_speed_10m"] | NAN;
+                    id(uv) = atual["uv_index"] | NAN;
+                    std::string t = atual["time"] | "";
+                    id(hora) = t.size() >= 16 ? t.substr(11, 5) : "--:--";
+                    id(dia_dados) = t.size() >= 10 ? atoi(t.substr(8, 2).c_str()) : 0;
+                    JsonObject d = root["daily"];
+                    id(tmax) = d["temperature_2m_max"][0] | NAN;
+                    id(tmin) = d["temperature_2m_min"][0] | NAN;
+                    std::string sr = d["sunrise"][0] | "";
+                    std::string ss = d["sunset"][0] | "";
+                    id(nascer) = sr.size() >= 16 ? sr.substr(11, 5) : "";
+                    id(por_sol) = ss.size() >= 16 ? ss.substr(11, 5) : "";
+                    return true;
+                  });
+                  if (!ok) { id(falhou) = true; return; }
+                  // fuso do lugar escolhido, que o Open-Meteo já manda com o horário de verão aplicado
+                  esphome::time::ParsedTimezone tz{};
+                  tz.std_offset_seconds = -fuso;
+                  tz.dst_offset_seconds = -fuso;
+                  tz.dst_start.type = esphome::time::DSTRuleType::NONE;
+                  tz.dst_end.type = esphome::time::DSTRuleType::NONE;
+                  esphome::time::set_global_tz(tz);
+                  ESP_LOGI("tempo", "Ar %.1f °C, código %d, vento %.1f km/h, UV %.1f, fuso UTC%+d h",
+                           id(ar), id(codigo_tempo), id(vento), id(uv), fuso / 3600);
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGW("tempo", "Não consegui falar com a API de previsão");
+                  id(falhou) = true;
+      # mar: só entra na tela se existir mar a menos de 25 km do lugar
+      - http_request.get:
+          url: !lambda |-
+            char u[400];
+            snprintf(u, sizeof(u), "https://marine-api.open-meteo.com/v1/marine?latitude=%.4f&longitude=%.4f&cell_selection=sea"
+              "&current=wave_height,wave_direction,wave_period,sea_surface_temperature&hourly=sea_level_height_msl"
+              "&timezone=auto&forecast_days=2", id(lat), id(lon));
+            return std::string(u);
+          capture_response: true
+          max_response_buffer_size: 8192
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGI("mar", "Sem dados de mar para este lugar (HTTP %d)", response->status_code);
+                    return;
+                  }
+                  json::parse_json(body, [](JsonObject root) -> bool {
+                    JsonObject atual = root["current"];
+                    if (atual.isNull()) return false;
+                    float la = root["latitude"] | 999.0f, lo = root["longitude"] | 999.0f;
+                    // distância entre o lugar e o ponto de mar que a API escolheu
+                    float r = 6371.0f, p = 0.0174533f;
+                    float dla = (la - id(lat)) * p, dlo = (lo - id(lon)) * p;
+                    float a = sinf(dla / 2) * sinf(dla / 2) + cosf(id(lat) * p) * cosf(la * p) * sinf(dlo / 2) * sinf(dlo / 2);
+                    float km = 2 * r * atan2f(sqrtf(a), sqrtf(1 - a));
+                    id(onda_altura) = atual["wave_height"] | NAN;
+                    id(onda_direcao) = atual["wave_direction"] | NAN;
+                    id(onda_periodo) = atual["wave_period"] | NAN;
+                    id(agua) = atual["sea_surface_temperature"] | NAN;
+                    JsonArray nivel = root["hourly"]["sea_level_height_msl"];
+                    id(mare).clear();
+                    for (size_t i = 0; i < 48 && i < nivel.size(); i++) id(mare).push_back(nivel[i] | 0.0f);
+                    id(tem_mar) = km < 25 && !isnan(id(onda_altura)) && id(mare).size() >= 25;
+                    ESP_LOGI("mar", "Ponto de mar a %.0f km, ondas %.2f m, usar mar: %s", km, id(onda_altura), id(tem_mar) ? "sim" : "não");
+                    return true;
+                  });
+          on_error:
+            then:
+              - lambda: ESP_LOGI("mar", "Sem resposta da API marinha");
+      - if:
+          condition:
+            lambda: return !id(falhou);
+          then:
+            - lambda: id(tem_dados) = true;
+            - component.update: tela
+          else:
+            - if:
+                condition:
+                  lambda: return !id(tem_dados);
+                then:
+                  - component.update: tela
+
+interval:
+  - interval: 30min
+    then:
+      - script.execute: atualizar
+  - interval: 5min
+    then:
+      - if:
+          condition:
+            lambda: return id(falhou);
+          then:
+            - script.execute: atualizar
+  # Mostra como configurar o Wi-Fi quando a rede "Painel do Mar" está aberta (na primeira vez,
+  # ou 30 s depois de perder a rede da casa) ou depois de 90 s seguidos sem conexão.
+  # Uma queda curta do roteador não troca a tela.
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              auto *w = wifi::global_wifi_component;
+              if (w->is_connected()) { id(sem_wifi_desde) = 0; return false; }
+              if (id(sem_wifi_desde) == 0) id(sem_wifi_desde) = millis();
+              bool tempo = millis() - id(sem_wifi_desde) > 90000;
+              return id(modo) != 1 && (w->is_ap_active() || tempo);
+          then:
+            - lambda: id(modo) = 1;
+            - component.update: tela
+
+time:
+  - platform: sntp
+    id: relogio
+    timezone: America/Sao_Paulo
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - if:
+              condition:
+                lambda: return id(tem_dados) && id(modo) == 0;
+              then:
+                - component.update: tela
+      - seconds: 30
+        minutes: 0
+        hours: 0
+        then:
+          - script.execute: atualizar
+
+spi:
+  clk_pin: GPIO4
+  mosi_pin: GPIO6
+
+font:
+  - file: "fonts/PixelOperator.ttf"
+    id: po
+    size: 16
+    glyphs: &texto " !%'(),-./0123456789:?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz°áàâãäçéêèíìîñóòôõöúùûüÁÀÂÃÉÊÍÓÔÕÚÇÑ"
+  - file: "fonts/PixelOperator-Bold.ttf"
+    id: po_negrito
+    size: 16
+    glyphs: *texto
+  - file: "gfonts://Jersey 15"
+    id: jersey
+    size: 27
+    glyphs: *texto
+  - file: "gfonts://Jersey 15"
+    id: jersey_grande
+    size: 54
+    glyphs: ",-.0123456789°"
+
+display:
+  - platform: waveshare_epaper
+    id: tela
+    # Driver -r2: grava a imagem anterior na memória da tela e usa a tabela de atualização
+    # parcial certa para o controlador SSD1680. Sem isso, a troca do relógio a cada minuto
+    # deixa restos dos números anteriores embolados com os novos.
+    model: 2.90inv2-r2
+    cs_pin: GPIO7
+    dc_pin: GPIO5
+    reset_pin: GPIO3
+    busy_pin: GPIO10
+    rotation: 270°
+    update_interval: never
+    full_update_every: 30
+    lambda: |-
+      const auto TINTA = COLOR_ON;
+      const auto PAPEL = COLOR_OFF;
+      it.fill(PAPEL);
+
+      auto largura = [](font::Font *f, const std::string &s) -> int {
+        int w, xo, base, alt;
+        f->measure(s.c_str(), &w, &xo, &base, &alt);
+        return w + xo;
+      };
+      auto decimal = [](float v) -> std::string {
+        char b[16];
+        snprintf(b, sizeof(b), "%.1f", v);
+        for (char *p = b; *p; p++) if (*p == '.') *p = ',';
+        return std::string(b);
+      };
+      auto inteiro = [](float v) -> std::string { return std::to_string((int) floorf(v + 0.5f)); };
+      auto texto = [&](int x, int y, font::Font *f, const std::string &s) {
+        it.print(x, y, f, TINTA, TextAlign::BASELINE_LEFT, s.c_str());
+      };
+      // corta o texto com "." no fim se não couber na largura
+      auto cabe = [&](std::string s, font::Font *f, int maxw) -> std::string {
+        if (largura(f, s) <= maxw) return s;
+        while (!s.empty() && largura(f, s + ".") > maxw) {
+          while (!s.empty() && (((unsigned char) s.back()) & 0xC0) == 0x80) s.pop_back();
+          if (!s.empty()) s.pop_back();
+        }
+        return s + ".";
+      };
+
+      // ---------- telas de configuração ----------
+      if (id(modo) == 3) {
+        texto(6, 22, id(jersey), "Painel do Mar");
+        texto(6, 60, id(po), "conectando ao Wi-Fi...");
+        return;
+      }
+      if (id(modo) == 1) {
+        it.qr_code(8, 22, id(qr_wifi), TINTA, 3);
+        int x = 110;
+        texto(x, 22, id(jersey), "Configurar Wi-Fi");
+        texto(x, 42, id(po), "Aponte a câmera para o");
+        texto(x, 55, id(po), "código ou entre na rede");
+        texto(x, 70, id(po_negrito), "${rede_config}");
+        texto(x, 83, id(po), "senha:");
+        texto(x + largura(id(po), "senha: "), 83, id(po_negrito), "${senha_config}");
+        texto(x, 104, id(po), "Depois, escolha o Wi-Fi");
+        texto(x, 117, id(po), "da casa (2,4 GHz) e a senha.");
+        return;
+      }
+      if (id(modo) == 2) {
+        it.qr_code(8, 24, id(qr_pagina), TINTA, 3);
+        int x = 110;
+        texto(x, 22, id(jersey), "Escolher o lugar");
+        texto(x, 42, id(po), "No celular, na rede da");
+        texto(x, 55, id(po), "casa, aponte a câmera");
+        texto(x, 68, id(po), "ou abra o endereço:");
+        texto(x, 84, id(po_negrito), cabe("http://" + id(ip_txt).state, id(po_negrito), 290 - x));
+        if (id(tem_lugar)) {
+          texto(x, 104, id(po), "Os dados aparecem");
+          texto(x, 117, id(po), "em 30 segundos.");
+        } else {
+          texto(x, 104, id(po), "A tela atualiza quando");
+          texto(x, 117, id(po), "você salvar o lugar.");
+        }
+        return;
+      }
+
+      // ---------- dados ----------
+      std::string nome = id(nome_tela).state.empty() ? id(nome_auto).state : id(nome_tela).state;
+      if (!id(tem_dados)) {
+        texto(6, 22, id(jersey), cabe(nome, id(jersey), 284));
+        texto(6, 60, id(po), id(falhou) ? "sem dados, tentando de novo em 5 min" : "buscando dados...");
+        return;
+      }
+
+      int c = id(codigo_tempo);
+      std::string clima = "nublado";
+      if (c == 0) clima = "céu limpo";
+      else if (c >= 1 && c <= 2) clima = "poucas nuvens";
+      else if (c == 45 || c == 48) clima = "neblina";
+      else if (c >= 95) clima = "trovoadas";
+      else if ((c >= 71 && c <= 77) || c == 85 || c == 86) clima = "neve";
+      else if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) clima = "chuva";
+      float u = id(uv);
+      // nomes curtos para caber ao lado do número na coluna da direita
+      std::string uv_txt = u < 3 ? "baixo" : u < 6 ? "médio" : u < 8 ? "alto" : u < 11 ? "m. alto" : "extremo";
+
+      const int GAP = 4, L1 = 37, V2 = 94;
+      const int CAP_MEDIO = 15, TOPO_GRANDE = 30, VIRGULA = 4, CAP_PEQ = 9;
+
+      auto agora_t = id(relogio).now();
+      std::string hora_tela = agora_t.is_valid() ? agora_t.strftime("%H:%M") : id(hora);
+      float agora;
+      if (agora_t.is_valid()) {
+        agora = agora_t.hour + agora_t.minute / 60.0f;
+        if (agora_t.day_of_month != id(dia_dados)) agora += 24;
+      } else {
+        agora = atoi(id(hora).substr(0, 2).c_str()) + atoi(id(hora).substr(3, 2).c_str()) / 60.0f;
+      }
+
+      // cabeçalho, com o nome cortado se não couber
+      std::string direita = clima + ", " + hora_tela;
+      int wd = largura(id(po_negrito), direita);
+      texto(6, 18, id(jersey), cabe(nome, id(jersey), 290 - wd - 10 - 6));
+      it.print(290, 18, id(po_negrito), TINTA, TextAlign::BASELINE_RIGHT, direita.c_str());
+      it.horizontal_line(6, 24, 284, TINTA);
+
+      struct Celula { std::string rotulo, valor, unidade; };
+      auto grade = [&](Celula *cel) {
+        for (int i = 0; i < 4; i++) {
+          int x = 156 + (i % 2) * 70;
+          int ly = i < 2 ? L1 : V2 - CAP_MEDIO - GAP;
+          int vy = i < 2 ? L1 + GAP + CAP_MEDIO : V2;
+          texto(x, ly, id(po), cel[i].rotulo);
+          int vw = largura(id(jersey), cel[i].valor);
+          texto(x, vy, id(jersey), cel[i].valor);
+          if (!cel[i].unidade.empty()) texto(x + vw + 3, vy, id(po), cabe(cel[i].unidade, id(po), 290 - (x + vw + 3)));
+        }
+      };
+      int by = L1 + GAP + TOPO_GRANDE;
+      int sub_y = by + VIRGULA + GAP + CAP_PEQ;
+      static const char *ANEL[] = {"..#####..",".#######.","#########","#########","#########","#########","#########",".#######.","..#####.."};
+      static const char *PONTO[] = {"..###..",".#####.","#######","#######","#######",".#####.","..###.."};
+      auto bolinha = [&](int cx, int cy) {
+        for (int r = 0; r < 9; r++) for (int k = 0; k < 9; k++) if (ANEL[r][k] == '#') it.draw_pixel_at(cx - 4 + k, cy - 4 + r, PAPEL);
+        for (int r = 0; r < 7; r++) for (int k = 0; k < 7; k++) if (PONTO[r][k] == '#') it.draw_pixel_at(cx - 3 + k, cy - 3 + r, TINTA);
+      };
+
+      if (id(tem_mar)) {
+        // ---------- lugar com mar: ondas, água, ar, vento, UV e maré ----------
+        const char *PONTOS[] = {"N","NNE","NE","ENE","L","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"};
+        std::string direcao = PONTOS[((int) floorf(id(onda_direcao) / 22.5f + 0.5f)) % 16];
+        texto(6, L1, id(po), "ondas");
+        std::string alt = decimal(id(onda_altura));
+        int w = largura(id(jersey_grande), alt);
+        texto(5, by, id(jersey_grande), alt);
+        texto(5 + w + 3, by, id(jersey), "m");
+        texto(6, sub_y, id(po_negrito), "de " + direcao + ", " + decimal(id(onda_periodo)) + " s");
+        it.vertical_line(148, 30, 65, TINTA);
+        Celula cel[4] = {
+          {"água", decimal(id(agua)) + "°", ""},
+          {"ar", decimal(id(ar)) + "°", ""},
+          {"vento", inteiro(id(vento)), "km/h"},
+          {"UV", inteiro(u), uv_txt},
+        };
+        grade(cel);
+        it.horizontal_line(6, 99, 284, TINTA);
+
+        auto &m = id(mare);
+        std::string mare_txt = "";
+        for (int i = (int) floorf(agora) + 1; i + 1 < (int) m.size(); i++) {
+          if (m[i] > m[i - 1] && m[i] >= m[i + 1]) { mare_txt = "alta às " + std::to_string(i % 24) + "h"; break; }
+          if (m[i] < m[i - 1] && m[i] <= m[i + 1]) { mare_txt = "baixa às " + std::to_string(i % 24) + "h"; break; }
+        }
+        texto(6, 112, id(po), "maré");
+        texto(6, 124, id(po_negrito), mare_txt);
+        auto nivel = [&](float h) -> float {
+          int i = (int) floorf(h);
+          float f = h - i;
+          auto p = [&](int k) { return m[std::max(0, std::min(24, k))]; };
+          float p0 = p(i - 1), p1 = p(i), p2 = p(i + 1), p3 = p(i + 2);
+          return 0.5f * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f
+                         + (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f);
+        };
+        // escala da curva ajustada à maré do dia, porque a amplitude muda de um lugar para outro
+        float vmin = 1e9, vmax = -1e9;
+        for (int i = 0; i <= 24 && i < (int) m.size(); i++) { vmin = std::min(vmin, m[i]); vmax = std::max(vmax, m[i]); }
+        float folga = std::max(0.1f, (vmax - vmin) * 0.12f);
+        vmin -= folga; vmax += folga;
+        int x0 = 6 + std::max(largura(id(po), "maré"), largura(id(po_negrito), mare_txt)) + 10;
+        const int x1 = 290, y0 = 104, y1 = 122;
+        auto Y = [&](float v) { return (int) floorf(y1 - (v - vmin) / (vmax - vmin) * (y1 - y0) + 0.5f); };
+        int y_ant = -1;
+        for (int x = x0; x <= x1; x++) {
+          int y = Y(nivel((x - x0) * 24.0f / (x1 - x0)));
+          int de = y_ant < 0 ? y : std::min(y, y_ant);
+          int ate = y_ant < 0 ? y : std::max(y, y_ant);
+          it.vertical_line(x, de, ate - de + 2, TINTA);
+          if ((x - x0) % 3 == 0) it.vertical_line(x, y, y1 - y, TINTA);
+          y_ant = y;
+        }
+        for (int hr : {6, 12, 18}) it.vertical_line((int) floorf(x0 + (x1 - x0) * hr / 24.0f + 0.5f), y1 + 1, 3, TINTA);
+        if (agora <= 24) bolinha((int) floorf(x0 + (x1 - x0) * agora / 24.0f + 0.5f), Y(nivel(agora)));
+      } else {
+        // ---------- lugar sem mar: temperatura, sensação, umidade, vento, UV e sol ----------
+        texto(6, L1, id(po), "temperatura");
+        texto(5, by, id(jersey_grande), decimal(id(ar)) + "°");
+        texto(6, sub_y, id(po_negrito), "máx " + inteiro(id(tmax)) + "°, mín " + inteiro(id(tmin)) + "°");
+        it.vertical_line(148, 30, 65, TINTA);
+        Celula cel[4] = {
+          {"sensação", decimal(id(sensacao)) + "°", ""},
+          {"umidade", inteiro(id(umidade)), "%"},
+          {"vento", inteiro(id(vento)), "km/h"},
+          {"UV", inteiro(u), uv_txt},
+        };
+        grade(cel);
+        it.horizontal_line(6, 99, 284, TINTA);
+
+        // faixa do dia: grossa entre o nascer e o pôr do sol, com a bolinha na hora atual
+        texto(6, 112, id(po), "sol");
+        std::string sol_txt = id(nascer) + " às " + id(por_sol);
+        texto(6, 124, id(po_negrito), sol_txt);
+        int x0 = 6 + std::max(largura(id(po), "sol"), largura(id(po_negrito), sol_txt)) + 10;
+        const int x1 = 290, yb = 114;
+        auto hx = [&](float h) { return (int) floorf(x0 + (x1 - x0) * h / 24.0f + 0.5f); };
+        auto horas = [](const std::string &s) -> float { return s.size() >= 5 ? atoi(s.substr(0, 2).c_str()) + atoi(s.substr(3, 2).c_str()) / 60.0f : -1; };
+        it.horizontal_line(x0, yb, x1 - x0 + 1, TINTA);
+        float hn = horas(id(nascer)), hp = horas(id(por_sol));
+        if (hn >= 0 && hp > hn) it.filled_rectangle(hx(hn), yb - 3, hx(hp) - hx(hn) + 1, 7, TINTA);
+        for (int hr : {6, 12, 18}) it.vertical_line(hx(hr), yb + 6, 3, TINTA);
+        if (agora <= 24) bolinha(hx(agora), yb);
+      }

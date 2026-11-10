@@ -1,0 +1,20 @@
+Painel do Mar: como configurar
+
+1. Ligue o painel na tomada com o cabo USB-C. Em uns 30 segundos, a tela mostra "Configurar Wi-Fi" e um código QR.
+
+2. Aponte a câmera do celular para o código e toque no aviso que aparece, para entrar na rede "Painel do Mar". Se preferir, entre nela pelos ajustes de Wi-Fi do celular, com a senha "configurar".
+
+3. Uma página abre sozinha, em inglês. Toque no nome do Wi-Fi da sua casa na lista, digite a senha no campo "Password" e toque em "Save".
+   O painel só enxerga redes de 2,4 GHz. Se o seu roteador tiver duas redes com nomes diferentes, como "Casa" e "Casa_5G", escolha a que não termina em 5G.
+
+4. Volte o celular para o Wi-Fi da sua casa. A tela do painel mostra "Escolher o lugar" e outro código QR. Aponte a câmera para ele.
+
+5. Na página que abrir, escreva o bairro ou a cidade em "1. Lugar", confira a sigla do país em "2. País" e toque em "3. Salvar lugar". Em "Lugar salvo" aparece o que foi encontrado, para você conferir.
+
+6. Pronto. A tela mostra o tempo e, perto do mar, as ondas e a maré.
+
+Para mudar o lugar depois: tire o painel da tomada e ligue de novo. Por 30 segundos, a tela mostra o código QR da página.
+
+Se trocar de internet ou de senha do Wi-Fi: o painel percebe sozinho e, em até 2 minutos, a tela volta a mostrar "Configurar Wi-Fi". É só repetir os passos 2 e 3.
+
+Incorpora produto homologado pela Anatel sob número ____________ (preencha com o número do módulo da placa usada).

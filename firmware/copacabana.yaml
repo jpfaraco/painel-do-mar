@@ -1,0 +1,396 @@
+# Painel de Copacabana: condições do mar e do tempo numa tela e-paper de 2,9"
+# ESP32-C3 Super Mini + e-ink WeAct 2,9" preta e branca, 296 × 128 (controlador SSD1680)
+# Dados: Open-Meteo (sem cadastro e sem chave)
+
+substitutions:
+  latitude: "-22.9711"
+  longitude: "-43.1822"
+
+esphome:
+  name: copacabana
+  friendly_name: Painel de Copacabana
+  on_boot:
+    # 300 roda depois da tela estar pronta e antes do Wi-Fi, então o aviso
+    # aparece mesmo que a rede demore ou não conecte
+    priority: 300
+    then:
+      # desenha o aviso de "buscando" logo ao ligar, o que já testa a ligação da tela
+      - component.update: tela
+      - script.execute: atualizar
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret copacabana_api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # A antena da Super Mini distorce na potência máxima (20 dB) e o roteador
+  # deixa de ouvir a placa com potência baixa demais. 13 dB funciona nos dois casos.
+  output_power: 13dB
+  ap:
+    ssid: "Copacabana Fallback"
+
+captive_portal:
+
+http_request:
+  timeout: 10s
+  # o pedido roda no laço principal da placa; sem isso, versões mais antigas do
+  # ESPHome reiniciam a placa se a resposta demorar mais de 5 segundos
+  watchdog_timeout: 30s
+
+json:
+
+globals:
+  - id: tem_dados
+    type: bool
+    initial_value: "false"
+  - id: falhou
+    type: bool
+    initial_value: "false"
+  - id: hora
+    type: std::string
+    initial_value: '""'
+  - id: dia_dados
+    type: int
+    initial_value: "0"
+  - id: onda_altura
+    type: float
+  - id: onda_direcao
+    type: float
+  - id: onda_periodo
+    type: float
+  - id: agua
+    type: float
+  - id: ar
+    type: float
+  - id: vento
+    type: float
+  - id: uv
+    type: float
+  - id: codigo_tempo
+    type: int
+  - id: mare
+    type: std::vector<float>
+
+script:
+  - id: atualizar
+    mode: single
+    then:
+      - wait_until:
+          condition:
+            wifi.connected:
+          timeout: 60s
+      - lambda: id(falhou) = false;
+      - http_request.get:
+          url: "https://marine-api.open-meteo.com/v1/marine?latitude=${latitude}&longitude=${longitude}&cell_selection=sea&current=wave_height,wave_direction,wave_period,sea_surface_temperature&hourly=sea_level_height_msl&timezone=America%2FSao_Paulo&forecast_days=2"
+          capture_response: true
+          max_response_buffer_size: 8192
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("mar", "Resposta HTTP %d", response->status_code);
+                    id(falhou) = true;
+                    return;
+                  }
+                  bool ok = json::parse_json(body, [](JsonObject root) -> bool {
+                    JsonObject atual = root["current"];
+                    if (atual.isNull()) return false;
+                    id(onda_altura) = atual["wave_height"] | NAN;
+                    id(onda_direcao) = atual["wave_direction"] | NAN;
+                    id(onda_periodo) = atual["wave_period"] | NAN;
+                    id(agua) = atual["sea_surface_temperature"] | NAN;
+                    std::string t = atual["time"] | "";
+                    id(hora) = t.size() >= 16 ? t.substr(11, 5) : "--:--";
+                    id(dia_dados) = t.size() >= 10 ? atoi(t.substr(8, 2).c_str()) : 0;
+                    JsonArray nivel = root["hourly"]["sea_level_height_msl"];
+                    id(mare).clear();
+                    // guarda hoje e amanhã (48 horas) para achar a próxima maré mesmo à noite
+                    for (size_t i = 0; i < 48 && i < nivel.size(); i++)
+                      id(mare).push_back(nivel[i] | 0.0f);
+                    return true;
+                  });
+                  if (!ok) id(falhou) = true;
+                  ESP_LOGI("mar", "Ondas %.2f m de %.0f°, %.1f s, água %.1f °C, %d pontos de maré",
+                           id(onda_altura), id(onda_direcao), id(onda_periodo), id(agua), (int) id(mare).size());
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGW("mar", "Não consegui falar com a API marinha");
+                  id(falhou) = true;
+      - http_request.get:
+          url: "https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&cell_selection=sea&current=temperature_2m,weather_code,wind_speed_10m,uv_index&timezone=America%2FSao_Paulo"
+          capture_response: true
+          max_response_buffer_size: 4096
+          on_response:
+            then:
+              - lambda: |-
+                  if (response->status_code != 200) {
+                    ESP_LOGW("tempo", "Resposta HTTP %d", response->status_code);
+                    id(falhou) = true;
+                    return;
+                  }
+                  bool ok = json::parse_json(body, [](JsonObject root) -> bool {
+                    JsonObject atual = root["current"];
+                    if (atual.isNull()) return false;
+                    id(ar) = atual["temperature_2m"] | NAN;
+                    id(codigo_tempo) = atual["weather_code"] | -1;
+                    id(vento) = atual["wind_speed_10m"] | NAN;
+                    id(uv) = atual["uv_index"] | NAN;
+                    return true;
+                  });
+                  if (!ok) id(falhou) = true;
+                  ESP_LOGI("tempo", "Ar %.1f °C, código %d, vento %.1f km/h, UV %.1f",
+                           id(ar), id(codigo_tempo), id(vento), id(uv));
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGW("tempo", "Não consegui falar com a API de previsão");
+                  id(falhou) = true;
+      - if:
+          condition:
+            lambda: return !id(falhou) && id(mare).size() >= 25;
+          then:
+            - lambda: id(tem_dados) = true;
+            - component.update: tela
+          else:
+            - lambda: id(falhou) = true;
+            # se ainda não tem nenhum dado, mostra o aviso de falha na tela
+            - if:
+                condition:
+                  lambda: return !id(tem_dados);
+                then:
+                  - component.update: tela
+
+interval:
+  # atualização normal
+  - interval: 30min
+    then:
+      - script.execute: atualizar
+  # se a última tentativa falhou, tenta de novo mais cedo
+  - interval: 5min
+    then:
+      - if:
+          condition:
+            lambda: return id(falhou);
+          then:
+            - script.execute: atualizar
+
+# relógio: pega a hora certa da internet (SNTP) e redesenha a tela a cada minuto
+time:
+  - platform: sntp
+    id: relogio
+    timezone: America/Sao_Paulo
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - if:
+              condition:
+                lambda: return id(tem_dados);
+              then:
+                - component.update: tela
+      # logo depois da meia-noite busca os dados do novo dia, para a curva da maré trocar de dia
+      - seconds: 30
+        minutes: 0
+        hours: 0
+        then:
+          - script.execute: atualizar
+
+spi:
+  clk_pin: GPIO4
+  mosi_pin: GPIO6
+
+font:
+  - file: "fonts/PixelOperator.ttf"
+    id: po
+    size: 16
+    glyphs: &texto " !%(),-./0123456789:?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz°áàâãçéêíóôõú"
+  - file: "fonts/PixelOperator-Bold.ttf"
+    id: po_negrito
+    size: 16
+    glyphs: *texto
+  - file: "gfonts://Jersey 15"
+    id: jersey
+    size: 27
+    glyphs: " ,-.0123456789°ACabcmnop"
+  - file: "gfonts://Jersey 15"
+    id: jersey_grande
+    size: 54
+    glyphs: ",-.0123456789"
+
+display:
+  - platform: waveshare_epaper
+    id: tela
+    # Driver -r2: grava a imagem anterior na memória da tela e usa a tabela de atualização
+    # parcial certa para o controlador SSD1680. Sem isso, a troca do relógio a cada minuto
+    # deixa restos dos números anteriores embolados com os novos.
+    model: 2.90inv2-r2
+    cs_pin: GPIO7
+    dc_pin: GPIO5
+    reset_pin: GPIO3
+    busy_pin: GPIO10
+    rotation: 270°
+    update_interval: never
+    # o relógio redesenha a tela a cada minuto com a troca parcial, que não pisca;
+    # a cada 30 trocas (30 minutos) ela faz a limpeza completa e tira a sombra
+    full_update_every: 30
+    lambda: |-
+      const auto TINTA = COLOR_ON;
+      const auto PAPEL = COLOR_OFF;
+      it.fill(PAPEL);
+
+      // largura somando o avanço de cada letra, igual ao emulador
+      auto largura = [](font::Font *f, const std::string &s) -> int {
+        int w, xo, base, alt;
+        f->measure(s.c_str(), &w, &xo, &base, &alt);
+        return w + xo;
+      };
+      auto decimal = [](float v) -> std::string {
+        char b[16];
+        snprintf(b, sizeof(b), "%.1f", v);
+        for (char *p = b; *p; p++) if (*p == '.') *p = ',';
+        return std::string(b);
+      };
+      auto texto = [&](int x, int y, font::Font *f, const std::string &s) {
+        it.print(x, y, f, TINTA, TextAlign::BASELINE_LEFT, s.c_str());
+      };
+
+      if (!id(tem_dados)) {
+        texto(6, 18, id(jersey), "Copacabana");
+        texto(6, 60, id(po), id(falhou) ? "sem dados, tentando de novo em 5 min" : "buscando dados...");
+        return;
+      }
+
+      // ---------- textos ----------
+      const char *PONTOS[] = {"N","NNE","NE","ENE","L","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"};
+      std::string direcao = PONTOS[((int) floorf(id(onda_direcao) / 22.5f + 0.5f)) % 16];
+
+      int c = id(codigo_tempo);
+      std::string clima = "nublado";
+      if (c == 0) clima = "céu limpo";
+      else if (c >= 1 && c <= 2) clima = "poucas nuvens";
+      else if (c == 45 || c == 48) clima = "neblina";
+      else if (c >= 95) clima = "trovoadas";
+      else if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) clima = "chuva";
+
+      float u = id(uv);
+      // nomes curtos para caber ao lado do número na coluna da direita
+      std::string uv_txt = u < 3 ? "baixo" : u < 6 ? "médio" : u < 8 ? "alto" : u < 11 ? "m. alto" : "extremo";
+
+      // ---------- layout (mesmas medidas do emulador) ----------
+      const int GAP = 4;   // rótulo até o topo do valor
+      const int L1 = 37;   // linha de base dos rótulos de cima
+      const int V2 = 94;   // linha de base dos valores de baixo
+      const int CAP_MEDIO = 15;    // altura do "0" na Jersey 27
+      const int TOPO_GRANDE = 30;  // altura do "1" na Jersey 54
+      const int VIRGULA = 4;       // quanto a vírgula desce na Jersey 54
+      const int CAP_PEQ = 9;       // altura do "S" na Pixel Operator
+
+      // hora atual do relógio; enquanto ele não sincroniza, usa a hora do dado
+      auto agora_t = id(relogio).now();
+      std::string hora_tela = agora_t.is_valid() ? agora_t.strftime("%H:%M") : id(hora);
+
+      // cabeçalho
+      texto(6, 18, id(jersey), "Copacabana");
+      it.print(290, 18, id(po_negrito), TINTA, TextAlign::BASELINE_RIGHT, (clima + ", " + hora_tela).c_str());
+      it.horizontal_line(6, 24, 284, TINTA);
+
+      // ondas
+      texto(6, L1, id(po), "ondas");
+      int by = L1 + GAP + TOPO_GRANDE;
+      std::string alt = decimal(id(onda_altura));
+      int w = largura(id(jersey_grande), alt);
+      texto(5, by, id(jersey_grande), alt);
+      texto(5 + w + 3, by, id(jersey), "m");
+      int sub_y = by + VIRGULA + GAP + CAP_PEQ;
+      texto(6, sub_y, id(po_negrito), "de " + direcao + ", " + decimal(id(onda_periodo)) + " s");
+      it.vertical_line(148, 30, 65, TINTA);
+
+      // grade da direita
+      struct Celula { const char *rotulo; std::string valor; std::string unidade; };
+      Celula cel[4] = {
+        {"água", decimal(id(agua)) + "°", ""},
+        {"ar", decimal(id(ar)) + "°", ""},
+        {"vento", std::to_string((int) floorf(id(vento) + 0.5f)), "km/h"},
+        {"UV", std::to_string((int) floorf(u + 0.5f)), uv_txt},
+      };
+      for (int i = 0; i < 4; i++) {
+        int x = 156 + (i % 2) * 70;
+        int ly = i < 2 ? L1 : V2 - CAP_MEDIO - GAP;
+        int vy = i < 2 ? L1 + GAP + CAP_MEDIO : V2;
+        texto(x, ly, id(po), cel[i].rotulo);
+        int vw = largura(id(jersey), cel[i].valor);
+        texto(x, vy, id(jersey), cel[i].valor);
+        if (!cel[i].unidade.empty()) texto(x + vw + 3, vy, id(po), cel[i].unidade);
+      }
+      it.horizontal_line(6, 99, 284, TINTA);
+
+      // ---------- maré ----------
+      auto &m = id(mare);
+      // "agora" em horas desde a meia-noite do dia dos dados (a curva vai de 0 a 24)
+      float agora;
+      if (agora_t.is_valid()) {
+        agora = agora_t.hour + agora_t.minute / 60.0f;
+        if (agora_t.day_of_month != id(dia_dados)) agora += 24;   // já passou da meia-noite desde a última busca
+      } else {
+        agora = atoi(id(hora).substr(0, 2).c_str()) + atoi(id(hora).substr(3, 2).c_str()) / 60.0f;
+      }
+
+      std::string mare_txt = "";
+      // procura a próxima virada da maré nas próximas horas, passando da meia-noite se preciso
+      for (int i = (int) floorf(agora) + 1; i + 1 < (int) m.size(); i++) {
+        if (m[i] > m[i - 1] && m[i] >= m[i + 1]) { mare_txt = "alta às " + std::to_string(i % 24) + "h"; break; }
+        if (m[i] < m[i - 1] && m[i] <= m[i + 1]) { mare_txt = "baixa às " + std::to_string(i % 24) + "h"; break; }
+      }
+      texto(6, 112, id(po), "maré");
+      texto(6, 124, id(po_negrito), mare_txt);
+
+      auto nivel = [&](float h) -> float {   // interpolação Catmull-Rom entre as horas
+        int i = (int) floorf(h);
+        float f = h - i;
+        auto p = [&](int k) { return m[std::max(0, std::min(24, k))]; };
+        float p0 = p(i - 1), p1 = p(i), p2 = p(i + 1), p3 = p(i + 2);
+        return 0.5f * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f
+                       + (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f);
+      };
+      int x0 = 6 + std::max(largura(id(po), "maré"), largura(id(po_negrito), mare_txt)) + 10;
+      const int x1 = 290, y0 = 104, y1 = 122;
+      const float vmin = -0.65f, vmax = 0.55f;
+      auto Y = [&](float v) { return (int) floorf(y1 - (v - vmin) / (vmax - vmin) * (y1 - y0) + 0.5f); };
+
+      int y_ant = -1;
+      for (int x = x0; x <= x1; x++) {
+        float h = (x - x0) * 24.0f / (x1 - x0);
+        int y = Y(nivel(h));
+        int de = y_ant < 0 ? y : std::min(y, y_ant);
+        int ate = y_ant < 0 ? y : std::max(y, y_ant);
+        it.vertical_line(x, de, ate - de + 2, TINTA);        // curva com 2 px
+        if ((x - x0) % 3 == 0) it.vertical_line(x, y, y1 - y, TINTA);  // listras
+        y_ant = y;
+      }
+      for (int hr : {6, 12, 18}) {
+        int tx = (int) floorf(x0 + (x1 - x0) * hr / 24.0f + 0.5f);
+        it.vertical_line(tx, y1 + 1, 3, TINTA);
+      }
+
+      // bolinha do "agora": 7 × 7 de tinta com 1 px de papel em volta
+      static const char *ANEL[] = {"..#####..",".#######.","#########","#########","#########","#########","#########",".#######.","..#####.."};
+      static const char *PONTO[] = {"..###..",".#####.","#######","#######","#######",".#####.","..###.."};
+      if (agora <= 24) {
+        int cx = (int) floorf(x0 + (x1 - x0) * agora / 24.0f + 0.5f);
+        int cy = Y(nivel(agora));
+        for (int r = 0; r < 9; r++) for (int k = 0; k < 9; k++) if (ANEL[r][k] == '#') it.draw_pixel_at(cx - 4 + k, cy - 4 + r, PAPEL);
+        for (int r = 0; r < 7; r++) for (int k = 0; k < 7; k++) if (PONTO[r][k] == '#') it.draw_pixel_at(cx - 3 + k, cy - 3 + r, TINTA);
+      }
