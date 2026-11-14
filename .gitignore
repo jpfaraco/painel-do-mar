@@ -1,3 +1,5 @@
 secrets.yaml
 .esphome/
 *.bin
+# firmwares publicados para atualização pela internet
+!ota/*.bin

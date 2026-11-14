@@ -6,10 +6,18 @@
 substitutions:
   rede_config: "Painel do Mar"
   senha_config: "configurar"
+  # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
+  # e o mesmo número no manifest.json do repositório.
+  versao: "1.1.0"
+  # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
+  manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
 esphome:
   name: painel-do-mar
   friendly_name: Painel do Mar
+  project:
+    name: "joaofaraco.painel-do-mar"
+    version: "${versao}"
   on_boot:
     # roda depois da tela estar pronta e antes do Wi-Fi
     priority: 300
@@ -25,7 +33,30 @@ esp32:
 logger:
 
 ota:
+  # gravação pelo ESPHome na mesma rede
   - platform: esphome
+  # atualização pela internet, a partir do repositório no GitHub
+  - platform: http_request
+    on_begin:
+      - lambda: id(modo) = 4;
+      - component.update: tela
+    on_error:
+      - lambda: id(modo) = 0;
+      - component.update: tela
+
+update:
+  - platform: http_request
+    id: atualizacao
+    name: "Versão do painel"
+    source: "${manifesto}"
+    update_interval: 6h
+    web_server:
+      sorting_group_id: grupo_painel
+      sorting_weight: 10
+    on_update_available:
+      then:
+        - update.perform:
+            id: atualizacao
 
 wifi:
   # Nenhuma rede gravada: na primeira vez, a placa abre a rede de configuração
@@ -40,12 +71,29 @@ wifi:
 
 captive_portal:
 
+# Apagar o Wi-Fi e o lugar salvos, para dar o painel a outra pessoa:
+# tire e ponha o cabo 5 vezes seguidas, com menos de 10 segundos entre uma e outra.
+# Na sexta vez, a placa volta a mostrar "Configurar Wi-Fi".
+factory_reset:
+  resets_required: 5
+  max_delay: 10s
+
 # página da placa na rede da casa, onde a pessoa escolhe o lugar
 web_server:
   port: 80
   version: 3
   # sem a janela de mensagens do sistema, que confunde quem não é técnico
   log: false
+  sorting_groups:
+    - id: grupo_lugar
+      name: "Lugar"
+      sorting_weight: 10
+    - id: grupo_tela
+      name: "Tela"
+      sorting_weight: 20
+    - id: grupo_painel
+      name: "Painel"
+      sorting_weight: 30
 
 http_request:
   timeout: 10s
@@ -59,7 +107,7 @@ qr_code:
     value: "http://192.168.4.1/"
 
 globals:
-  # 0 dados, 1 configurar Wi-Fi, 2 endereço da página, 3 conectando
+  # 0 dados, 1 configurar Wi-Fi, 2 endereço da página, 3 conectando, 4 atualizando
   - id: modo
     type: int
     initial_value: "3"
@@ -122,6 +170,10 @@ globals:
     initial_value: '""'
   - id: vento
     type: float
+  - id: rajadas
+    type: float
+  - id: chuva_hoje
+    type: float
   - id: uv
     type: float
   - id: codigo_tempo
@@ -136,6 +188,7 @@ text:
     name: "1. Lugar (bairro, cidade ou coordenadas)"
     icon: mdi:map-marker
     web_server:
+      sorting_group_id: grupo_lugar
       sorting_weight: 10
     optimistic: true
     restore_value: true
@@ -147,6 +200,7 @@ text:
     name: "2. País (sigla de 2 letras)"
     icon: mdi:flag
     web_server:
+      sorting_group_id: grupo_lugar
       sorting_weight: 20
     optimistic: true
     restore_value: true
@@ -158,6 +212,7 @@ text:
     name: "Nome na tela (deixe vazio para usar o do lugar)"
     icon: mdi:format-title
     web_server:
+      sorting_group_id: grupo_lugar
       sorting_weight: 50
     optimistic: true
     restore_value: true
@@ -173,11 +228,112 @@ text:
     max_length: 40
     initial_value: ""
 
+# ---------- escolha do que aparece em cada parte da tela ----------
+select:
+  - platform: template
+    id: sel_grande
+    name: "Número grande"
+    icon: mdi:numeric
+    optimistic: true
+    restore_value: true
+    options: ["Altura das ondas", "Temperatura do ar"]
+    initial_option: "Altura das ondas"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 10
+    on_value:
+      - script.execute: redesenhar
+  - platform: template
+    id: sel_q1
+    name: "Quadro 1, em cima à esquerda"
+    icon: mdi:numeric-1-box-outline
+    optimistic: true
+    restore_value: true
+    options: &quadros
+      - "Temperatura da água"
+      - "Temperatura do ar"
+      - "Sensação térmica"
+      - "Umidade do ar"
+      - "Vento"
+      - "Rajadas de vento"
+      - "Índice UV"
+      - "Chuva prevista hoje"
+      - "Potência das ondas"
+      - "Período das ondas"
+      - "Nascer do sol"
+      - "Pôr do sol"
+    initial_option: "Temperatura da água"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 20
+    on_value:
+      - script.execute: redesenhar
+  - platform: template
+    id: sel_q2
+    name: "Quadro 2, em cima à direita"
+    icon: mdi:numeric-2-box-outline
+    optimistic: true
+    restore_value: true
+    options: *quadros
+    initial_option: "Temperatura do ar"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 30
+    on_value:
+      - script.execute: redesenhar
+  - platform: template
+    id: sel_q3
+    name: "Quadro 3, embaixo à esquerda"
+    icon: mdi:numeric-3-box-outline
+    optimistic: true
+    restore_value: true
+    options: *quadros
+    initial_option: "Vento"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 40
+    on_value:
+      - script.execute: redesenhar
+  - platform: template
+    id: sel_q4
+    name: "Quadro 4, embaixo à direita"
+    icon: mdi:numeric-4-box-outline
+    optimistic: true
+    restore_value: true
+    options: *quadros
+    initial_option: "Índice UV"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 50
+    on_value:
+      - script.execute: redesenhar
+  - platform: template
+    id: sel_baixo
+    name: "Faixa de baixo"
+    icon: mdi:chart-bell-curve
+    optimistic: true
+    restore_value: true
+    options: ["Curva da maré", "Nascer e pôr do sol"]
+    initial_option: "Curva da maré"
+    web_server:
+      sorting_group_id: grupo_tela
+      sorting_weight: 60
+    on_value:
+      - script.execute: redesenhar
+
 button:
+  # mesmo efeito de tirar e pôr o cabo 5 vezes: apaga Wi-Fi e lugar e reinicia
+  - platform: factory_reset
+    name: "Apagar Wi-Fi e lugar (para dar a outra pessoa)"
+    icon: mdi:restart-alert
+    web_server:
+      sorting_group_id: grupo_painel
+      sorting_weight: 30
   - platform: template
     name: "3. Salvar lugar"
     icon: mdi:content-save
     web_server:
+      sorting_group_id: grupo_lugar
       sorting_weight: 30
     on_press:
       - script.execute: buscar_lugar
@@ -188,18 +344,31 @@ text_sensor:
     name: "Lugar salvo"
     icon: mdi:map-check
     web_server:
+      sorting_group_id: grupo_lugar
       sorting_weight: 40
   - platform: wifi_info
     ip_address:
       id: ip_txt
       name: "Endereço desta página"
       web_server:
-        sorting_weight: 60
+        sorting_group_id: grupo_painel
+        sorting_weight: 20
       on_value:
         - lambda: id(qr_pagina).set_value("http://" + x + "/");
 
 # ---------- lógica ----------
 script:
+  # redesenha a tela quando a pessoa troca uma escolha na página
+  - id: redesenhar
+    mode: restart
+    then:
+      - delay: 1s
+      - if:
+          condition:
+            lambda: return id(tem_dados) && id(modo) == 0;
+          then:
+            - component.update: tela
+
   # primeira conexão depois de ligar: mostra o endereço da página por 30 segundos
   - id: depois_de_conectar
     mode: restart
@@ -214,6 +383,7 @@ script:
             - lambda: |-
                 id(ja_conectou) = true;
                 id(modo) = 2;
+            - script.execute: conferir_atualizacao
             - delay: 2s
             - component.update: tela
             - if:
@@ -223,6 +393,11 @@ script:
                   - delay: 30s
                   - lambda: id(modo) = 0;
                   - script.execute: atualizar
+
+  - id: conferir_atualizacao
+    then:
+      - delay: 2min
+      - component.update: atualizacao
 
   - id: buscar_lugar
     mode: single
@@ -325,8 +500,8 @@ script:
           url: !lambda |-
             char u[400];
             snprintf(u, sizeof(u), "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&cell_selection=nearest"
-              "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,uv_index"
-              "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=1&timezone=auto", id(lat), id(lon));
+              "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,uv_index"
+              "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum&forecast_days=1&timezone=auto", id(lat), id(lon));
             return std::string(u);
           capture_response: true
           max_response_buffer_size: 4096
@@ -348,6 +523,7 @@ script:
                     id(umidade) = atual["relative_humidity_2m"] | NAN;
                     id(codigo_tempo) = atual["weather_code"] | -1;
                     id(vento) = atual["wind_speed_10m"] | NAN;
+                    id(rajadas) = atual["wind_gusts_10m"] | NAN;
                     id(uv) = atual["uv_index"] | NAN;
                     std::string t = atual["time"] | "";
                     id(hora) = t.size() >= 16 ? t.substr(11, 5) : "--:--";
@@ -355,6 +531,7 @@ script:
                     JsonObject d = root["daily"];
                     id(tmax) = d["temperature_2m_max"][0] | NAN;
                     id(tmin) = d["temperature_2m_min"][0] | NAN;
+                    id(chuva_hoje) = d["precipitation_sum"][0] | NAN;
                     std::string sr = d["sunrise"][0] | "";
                     std::string ss = d["sunset"][0] | "";
                     id(nascer) = sr.size() >= 16 ? sr.substr(11, 5) : "";
@@ -543,6 +720,12 @@ display:
       };
 
       // ---------- telas de configuração ----------
+      if (id(modo) == 4) {
+        texto(6, 22, id(jersey), "Atualizando");
+        texto(6, 60, id(po), "Baixando a versão nova do painel.");
+        texto(6, 76, id(po), "Não tire da tomada. Leva uns 2 minutos.");
+        return;
+      }
       if (id(modo) == 3) {
         texto(6, 22, id(jersey), "Painel do Mar");
         texto(6, 60, id(po), "conectando ao Wi-Fi...");
@@ -640,8 +823,43 @@ display:
         for (int r = 0; r < 7; r++) for (int k = 0; k < 7; k++) if (PONTO[r][k] == '#') it.draw_pixel_at(cx - 3 + k, cy - 3 + r, TINTA);
       };
 
-      if (id(tem_mar)) {
-        // ---------- lugar com mar: ondas, água, ar, vento, UV e maré ----------
+      // ---------- escolhas da página, com troca automática longe do mar ----------
+      bool mar = id(tem_mar);
+      int g = mar ? (int) id(sel_grande).active_index().value_or(0) : 1;
+      int baixo = mar ? (int) id(sel_baixo).active_index().value_or(0) : 1;
+      int quadro[4] = {(int) id(sel_q1).active_index().value_or(0), (int) id(sel_q2).active_index().value_or(1),
+                       (int) id(sel_q3).active_index().value_or(4), (int) id(sel_q4).active_index().value_or(6)};
+      // água, potência e período só existem perto do mar: longe dele, cada quadro usa um valor de terra
+      const int TERRA[4] = {2, 3, 4, 6};
+      for (int i = 0; i < 4; i++) if (!mar && (quadro[i] == 0 || quadro[i] == 8 || quadro[i] == 9)) quadro[i] = TERRA[i];
+
+      auto valor_ou_traco = [&](float x, std::string s) -> std::string { return isnan(x) ? std::string("--") : s; };
+      auto celula = [&](int k) -> Celula {
+        switch (k) {
+          case 0: return {"água", valor_ou_traco(id(agua), decimal(id(agua)) + "°"), ""};
+          case 1: return {"ar", valor_ou_traco(id(ar), decimal(id(ar)) + "°"), ""};
+          case 2: return {"sensação", valor_ou_traco(id(sensacao), decimal(id(sensacao)) + "°"), ""};
+          case 3: return {"umidade", valor_ou_traco(id(umidade), inteiro(id(umidade))), "%"};
+          case 4: return {"vento", valor_ou_traco(id(vento), inteiro(id(vento))), "km/h"};
+          case 5: return {"rajadas", valor_ou_traco(id(rajadas), inteiro(id(rajadas))), "km/h"};
+          case 6: return {"UV", valor_ou_traco(u, inteiro(u)), uv_txt};
+          case 7: {
+            float ch = id(chuva_hoje);
+            return {"chuva", valor_ou_traco(ch, ch < 10 ? decimal(ch) : inteiro(ch)), "mm"};
+          }
+          case 8: {
+            // potência por metro de frente de onda, em kW/m: 0,49 × altura² × período
+            float h = id(onda_altura), t = id(onda_periodo);
+            return {"potência", valor_ou_traco(h * t, inteiro(0.49f * h * h * t)), "kW/m"};
+          }
+          case 9: return {"período", valor_ou_traco(id(onda_periodo), decimal(id(onda_periodo))), "s"};
+          case 10: return {"nascer", id(nascer).empty() ? std::string("--") : id(nascer), ""};
+          default: return {"pôr do sol", id(por_sol).empty() ? std::string("--") : id(por_sol), ""};
+        }
+      };
+
+      // número grande
+      if (g == 0) {
         const char *PONTOS[] = {"N","NNE","NE","ENE","L","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"};
         std::string direcao = PONTOS[((int) floorf(id(onda_direcao) / 22.5f + 0.5f)) % 16];
         texto(6, L1, id(po), "ondas");
@@ -650,16 +868,18 @@ display:
         texto(5, by, id(jersey_grande), alt);
         texto(5 + w + 3, by, id(jersey), "m");
         texto(6, sub_y, id(po_negrito), "de " + direcao + ", " + decimal(id(onda_periodo)) + " s");
-        it.vertical_line(148, 30, 65, TINTA);
-        Celula cel[4] = {
-          {"água", decimal(id(agua)) + "°", ""},
-          {"ar", decimal(id(ar)) + "°", ""},
-          {"vento", inteiro(id(vento)), "km/h"},
-          {"UV", inteiro(u), uv_txt},
-        };
-        grade(cel);
-        it.horizontal_line(6, 99, 284, TINTA);
+      } else {
+        texto(6, L1, id(po), "temperatura");
+        texto(5, by, id(jersey_grande), decimal(id(ar)) + "°");
+        texto(6, sub_y, id(po_negrito), "máx " + inteiro(id(tmax)) + "°, mín " + inteiro(id(tmin)) + "°");
+      }
+      it.vertical_line(148, 30, 65, TINTA);
+      Celula cel[4] = {celula(quadro[0]), celula(quadro[1]), celula(quadro[2]), celula(quadro[3])};
+      grade(cel);
+      it.horizontal_line(6, 99, 284, TINTA);
 
+      if (baixo == 0) {
+        // ---------- faixa de baixo: curva da maré ----------
         auto &m = id(mare);
         std::string mare_txt = "";
         for (int i = (int) floorf(agora) + 1; i + 1 < (int) m.size(); i++) {
@@ -696,21 +916,7 @@ display:
         for (int hr : {6, 12, 18}) it.vertical_line((int) floorf(x0 + (x1 - x0) * hr / 24.0f + 0.5f), y1 + 1, 3, TINTA);
         if (agora <= 24) bolinha((int) floorf(x0 + (x1 - x0) * agora / 24.0f + 0.5f), Y(nivel(agora)));
       } else {
-        // ---------- lugar sem mar: temperatura, sensação, umidade, vento, UV e sol ----------
-        texto(6, L1, id(po), "temperatura");
-        texto(5, by, id(jersey_grande), decimal(id(ar)) + "°");
-        texto(6, sub_y, id(po_negrito), "máx " + inteiro(id(tmax)) + "°, mín " + inteiro(id(tmin)) + "°");
-        it.vertical_line(148, 30, 65, TINTA);
-        Celula cel[4] = {
-          {"sensação", decimal(id(sensacao)) + "°", ""},
-          {"umidade", inteiro(id(umidade)), "%"},
-          {"vento", inteiro(id(vento)), "km/h"},
-          {"UV", inteiro(u), uv_txt},
-        };
-        grade(cel);
-        it.horizontal_line(6, 99, 284, TINTA);
-
-        // faixa do dia: grossa entre o nascer e o pôr do sol, com a bolinha na hora atual
+        // ---------- faixa de baixo: grossa entre o nascer e o pôr do sol, com a bolinha na hora atual ----------
         texto(6, 112, id(po), "sol");
         std::string sol_txt = id(nascer) + " às " + id(por_sol);
         texto(6, 124, id(po_negrito), sol_txt);

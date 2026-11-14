@@ -7,11 +7,13 @@ Placa ESP32-C3 Super Mini com display e-ink WeAct de 2,9" preto e branco (SSD168
 ## Estrutura
 
 - `firmware/copacabana.yaml`: firmware da unidade de teste do João (`copacabana.local`, 10.0.0.100), ligada ao Home Assistant. Copacabana fixa por `substitutions`.
-- `firmware/painel-do-mar.yaml`: firmware de presente. Sem Home Assistant e sem rede gravada. O Wi-Fi e o lugar são configurados pelo celular, com QR codes na tela. Nunca rodou numa placa.
+- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.1.0. Sem Home Assistant e sem rede gravada. O Wi-Fi e o lugar são configurados pelo celular, com QR codes na tela, e a mesma página da placa tem listas para escolher o número grande, os quatro quadros e a faixa de baixo. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
+- `manifest.json` e `ota/`: a versão publicada para os painéis baixarem pela internet.
+- `scripts/publicar-atualizacao.sh`: publica uma versão nova (ver abaixo).
 - `firmware/fonts/`: Pixel Operator. A Jersey 15 vem do Google Fonts (`gfonts://`).
 - `firmware/secrets.example.yaml`: modelo do `secrets.yaml`, que fica fora do git.
 - `docs/como-configurar.txt`: instruções que acompanham o presente.
-- `case/`: caixa impressa em 3D (ainda vazio, ver abaixo).
+- `case/`: caixa impressa em 3D, com os STL e os scripts em Python que geram as peças.
 
 ## Compilar e gravar
 
@@ -23,13 +25,26 @@ docker exec esphome-esphome-1 esphome compile /config/copacabana.yaml
 docker exec esphome-esphome-1 esphome upload /config/copacabana.yaml --device copacabana.local
 ```
 
-A primeira gravação de uma placa nova é por USB, no computador, com o `firmware.factory.bin` em web.esphome.io. O container no Pi não tem acesso a USB.
+A primeira gravação de uma placa nova é por USB, no computador, com o `firmware.factory.bin` em web.esphome.io. O container no Pi não tem acesso a USB. Se a porta piscar na lista do Chrome, segure BOOT, aperte e solte RESET e solte BOOT.
 
 Diferença entre o repo e a pasta do ESPHome: aqui a chave de criptografia da API vem de `!secret copacabana_api_key`. Na pasta do Pi ela ainda está escrita direto no YAML.
 
+## Atualização pela internet
+
+Os painéis com o firmware de presente consultam `https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json` 2 minutos depois de ligar e depois a cada 6 horas. Se a versão no manifesto for diferente da gravada no painel, ele baixa o arquivo de `ota/`, confere o MD5, grava e reinicia. Wi-Fi, lugar e escolhas da tela continuam salvos. Durante a gravação, a tela mostra "Atualizando".
+
+Para lançar uma versão nova:
+
+1. Aumente `versao` em `firmware/painel-do-mar.yaml`.
+2. Compile e grave essa versão no seu painel, e confira que ele conecta e mostra os dados. Um firmware que não conecta no Wi-Fi não consegue buscar a correção, então nada vai para o repositório sem rodar numa placa antes.
+3. Baixe o arquivo OTA: no ESPHome, Install → Manual download → OTA format.
+4. Rode `./scripts/publicar-atualizacao.sh caminho/do/firmware.ota.bin "o que mudou"`. O script copia o arquivo para `ota/`, escreve o `manifest.json` com o MD5, faz o commit e o push.
+
+Quem tem acesso a este repositório consegue mandar firmware para todos os painéis, então a conta do GitHub precisa de verificação em duas etapas.
+
 ## Caixa
 
-Inspirada no rádio-relógio Braun DN40, do Dieter Rams. Os scripts em Python (manifold3d, shapely, trimesh) e os 3 STL foram feitos no Chat do Claude e ainda não estão aqui.
+Inspirada no rádio-relógio Braun DN40, do Dieter Rams. Os STL e os scripts estão em `case/`, com instruções em `case/README.md`.
 
 ## Links
 

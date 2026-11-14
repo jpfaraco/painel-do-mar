@@ -13,8 +13,12 @@ Painel do Mar: como configurar
 
 6. Pronto. A tela mostra o tempo e, perto do mar, as ondas e a maré.
 
+Para escolher o que aparece na tela: na mesma página do passo 5, a parte "Tela" tem listas para o número grande, os quatro quadros da direita e a faixa de baixo. A tela muda logo depois de cada escolha.
+
 Para mudar o lugar depois: tire o painel da tomada e ligue de novo. Por 30 segundos, a tela mostra o código QR da página.
 
 Se trocar de internet ou de senha do Wi-Fi: o painel percebe sozinho e, em até 2 minutos, a tela volta a mostrar "Configurar Wi-Fi". É só repetir os passos 2 e 3.
+
+Para apagar tudo e começar do zero: tire e ponha o cabo 5 vezes seguidas, com menos de 10 segundos entre uma e outra.
 
 Incorpora produto homologado pela Anatel sob número ____________ (preencha com o número do módulo da placa usada).

@@ -1,0 +1,14 @@
+{
+  "name": "Painel do Mar",
+  "version": "1.1.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "ota": {
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.1.0.ota.bin",
+        "md5": "44108e67c3a4aadb547d9d5d3c80e2d2",
+        "summary": "Escolha dos quadros da tela e atualização pela internet"
+      }
+    }
+  ]
+}
