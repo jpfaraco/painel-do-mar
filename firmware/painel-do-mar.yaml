@@ -8,7 +8,7 @@ substitutions:
   senha_config: "configurar"
   # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
   # e o mesmo número no manifest.json do repositório.
-  versao: "1.2.5"
+  versao: "1.2.6"
   # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
@@ -175,6 +175,9 @@ globals:
   - id: vento
     type: float
   - id: rajadas
+    type: float
+  # de onde o vento sopra, em graus (0 = norte)
+  - id: vento_dir
     type: float
   - id: chuva_hoje
     type: float
@@ -412,7 +415,7 @@ script:
           url: !lambda |-
             char u[400];
             snprintf(u, sizeof(u), "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&cell_selection=nearest"
-              "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,uv_index"
+              "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index"
               "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum&forecast_days=1&timezone=auto", id(lat), id(lon));
             return std::string(u);
           capture_response: true
@@ -436,6 +439,7 @@ script:
                     id(codigo_tempo) = atual["weather_code"] | -1;
                     id(vento) = atual["wind_speed_10m"] | NAN;
                     id(rajadas) = atual["wind_gusts_10m"] | NAN;
+                    id(vento_dir) = atual["wind_direction_10m"] | NAN;
                     id(uv) = atual["uv_index"] | NAN;
                     std::string t = atual["time"] | "";
                     id(hora) = t.size() >= 16 ? t.substr(11, 5) : "--:--";
@@ -647,7 +651,7 @@ display:
             r["dia"] = id(dia_dados);
             num("h", id(onda_altura), 10); num("dir", id(onda_direcao), 1); num("p", id(onda_periodo), 10);
             num("a", id(agua), 10); num("ar", id(ar), 10); num("s", id(sensacao), 10); num("u", id(umidade), 1);
-            num("v", id(vento), 1); num("r", id(rajadas), 1); num("uv", id(uv), 10); num("ch", id(chuva_hoje), 10);
+            num("v", id(vento), 1); num("vd", id(vento_dir), 1); num("r", id(rajadas), 1); num("uv", id(uv), 10); num("ch", id(chuva_hoje), 10);
             num("tx", id(tmax), 10); num("tn", id(tmin), 10);
             r["sr"] = id(nascer);
             r["ss"] = id(por_sol);
@@ -766,7 +770,22 @@ display:
       it.print(290, 18, id(po_negrito), TINTA, TextAlign::BASELINE_RIGHT, direita.c_str());
       it.horizontal_line(6, 24, 284, TINTA);
 
-      struct Celula { std::string rotulo, valor, unidade; };
+      // setas de 9 × 9 pixels, na altura das maiúsculas: a reta aponta para cima, a diagonal para
+      // cima e à direita, e as outras 6 direções saem girando essas duas de 90 em 90 graus
+      static const char *SETA_RETA[] = {"....#....","...###...","..#####..",".#######.","#########","...###...","...###...","...###...","...###..."};
+      static const char *SETA_DIAG[] = {"...######","....#####",".....####","....#####","...######","..###...#",".###.....","###......","##......."};
+      // de onde vem (graus, como nas APIs) para o índice da seta que aponta para onde vai: 0 = norte, 1 = nordeste...
+      auto rumo = [](float de) -> int { return isnan(de) ? -1 : ((int) floorf(fmodf(de + 180.0f + 22.5f, 360.0f) / 45.0f)) % 8; };
+      auto seta = [&](int x, int y, int k) {
+        const char **t = k % 2 == 0 ? SETA_RETA : SETA_DIAG;
+        for (int r = 0; r < 9; r++) for (int c = 0; c < 9; c++) {
+          int rr = r, cc = c;
+          for (int v = 0; v < k / 2; v++) { int sr = 8 - cc, sc = rr; rr = sr; cc = sc; }
+          if (t[rr][cc] == '#') it.draw_pixel_at(x + c, y + r, TINTA);
+        }
+      };
+
+      struct Celula { std::string rotulo, valor, unidade; int seta = -1; };
       auto grade = [&](Celula *cel) {
         for (int i = 0; i < 4; i++) {
           // colunas a 3 px da borda de cada quadro da página da placa, iguais às outras partes da tela
@@ -777,6 +796,8 @@ display:
           int vw = largura(id(jersey), cel[i].valor);
           texto(x, vy, id(jersey), cel[i].valor);
           if (!cel[i].unidade.empty()) texto(x + vw + 3, vy, id(po), cabe(cel[i].unidade, id(po), 290 - (x + vw + 3)));
+          // seta do vento ao lado do rótulo, onde sempre cabe
+          if (cel[i].seta >= 0) seta(x + largura(id(po), cel[i].rotulo) + 4, ly - 9, cel[i].seta);
         }
       };
       int by = L1 + GAP + TOPO_GRANDE;
@@ -805,7 +826,7 @@ display:
           case 1: return {"ar", valor_ou_traco(id(ar), decimal(id(ar)) + "°"), ""};
           case 2: return {"sensação", valor_ou_traco(id(sensacao), decimal(id(sensacao)) + "°"), ""};
           case 3: return {"umidade", valor_ou_traco(id(umidade), inteiro(id(umidade))), "%"};
-          case 4: return {"vento", valor_ou_traco(id(vento), inteiro(id(vento))), "km/h"};
+          case 4: return {"vento", valor_ou_traco(id(vento), inteiro(id(vento))), "km/h", isnan(id(vento)) ? -1 : rumo(id(vento_dir))};
           case 5: return {"rajadas", valor_ou_traco(id(rajadas), inteiro(id(rajadas))), "km/h"};
           case 6: return {"UV", valor_ou_traco(u, inteiro(u)), uv_txt};
           case 7: {
@@ -825,14 +846,15 @@ display:
 
       // número grande
       if (g == 0) {
-        const char *PONTOS[] = {"N","NNE","NE","ENE","L","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"};
-        std::string direcao = PONTOS[((int) floorf(id(onda_direcao) / 22.5f + 0.5f)) % 16];
         texto(6, L1, id(po), "ondas");
         std::string alt = decimal(id(onda_altura));
         int w = largura(id(jersey_grande), alt);
         texto(5, by, id(jersey_grande), alt);
         texto(5 + w + 3, by, id(jersey), "m");
-        texto(6, sub_y, id(po_negrito), "de " + direcao + ", " + decimal(id(onda_periodo)) + " s");
+        // seta para onde as ondas vão e o período, o tempo entre uma onda e a próxima
+        int k = rumo(id(onda_direcao)), xs = 6;
+        if (k >= 0) { seta(6, sub_y - 9, k); xs = 6 + 9 + 5; }
+        texto(xs, sub_y, id(po_negrito), "ondas a cada " + valor_ou_traco(id(onda_periodo), inteiro(id(onda_periodo))) + " s");
       } else {
         texto(6, L1, id(po), "temperatura");
         texto(5, by, id(jersey_grande), decimal(id(ar)) + "°");

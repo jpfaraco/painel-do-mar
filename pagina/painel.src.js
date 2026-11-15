@@ -189,7 +189,6 @@
     return "nublado";
   }
   function nivelUV(u) { return u < 3 ? "baixo" : u < 6 ? "médio" : u < 8 ? "alto" : u < 11 ? "m. alto" : "extremo"; }
-  var PONTOS = ["N", "NNE", "NE", "ENE", "L", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"];
 
   /* hora no lugar escolhido */
   function horaLocal() {
@@ -207,7 +206,7 @@
       case "ar": return ["ar", vazio(e.ar) ? "--" : decimal(e.ar) + "°", ""];
       case "sensacao": return ["sensação", vazio(e.s) ? "--" : decimal(e.s) + "°", ""];
       case "umidade": return ["umidade", vazio(e.u) ? "--" : inteiro(e.u), "%"];
-      case "vento": return ["vento", vazio(e.v) ? "--" : inteiro(e.v), "km/h"];
+      case "vento": return ["vento", vazio(e.v) ? "--" : inteiro(e.v), "km/h", vazio(e.v) ? -1 : rumo(e.vd)];
       case "rajadas": return ["rajadas", vazio(e.r) ? "--" : inteiro(e.r), "km/h"];
       case "uv": return ["UV", vazio(e.uv) ? "--" : inteiro(e.uv), vazio(e.uv) ? "" : nivelUV(e.uv)];
       case "chuva": return ["chuva", vazio(e.ch) ? "--" : (e.ch < 10 ? decimal(e.ch) : inteiro(e.ch)), "mm"];
@@ -264,6 +263,19 @@
   };
   var ANEL = ["..#####..", ".#######.", "#########", "#########", "#########", "#########", "#########", ".#######.", "..#####.."];
   var PONTO = ["..###..", ".#####.", "#######", "#######", "#######", ".#####.", "..###.."];
+  /* setas de 9 × 9, iguais às do firmware: a reta aponta para cima, a diagonal para cima e à direita,
+     e as outras saem girando de 90 em 90 graus. k: 0 = norte, 1 = nordeste, no sentido do relógio */
+  var SETA_RETA = ["....#....", "...###...", "..#####..", ".#######.", "#########", "...###...", "...###...", "...###...", "...###..."];
+  var SETA_DIAG = ["...######", "....#####", ".....####", "....#####", "...######", "..###...#", ".###.....", "###......", "##......."];
+  function rumo(de) { return vazio(de) ? -1 : Math.floor(((de + 180 + 22.5) % 360) / 45) % 8; }
+  Tela.prototype.seta = function (x, y, k) {
+    var t = k % 2 === 0 ? SETA_RETA : SETA_DIAG;
+    for (var r = 0; r < 9; r++) for (var c = 0; c < 9; c++) {
+      var rr = r, cc = c;
+      for (var v = 0; v < Math.floor(k / 2); v++) { var sr = 8 - cc, sc = rr; rr = sr; cc = sc; }
+      if (t[rr][cc] === "#") this.pt(x + c, y + r, 1);
+    }
+  };
   Tela.prototype.bolinha = function (cx, cy) {
     var r, k;
     for (r = 0; r < 9; r++) for (k = 0; k < 9; k++) if (ANEL[r][k] === "#") this.pt(cx - 4 + k, cy - 4 + r, 0);
@@ -333,12 +345,13 @@
     });
 
     if (g === "ondas") {
-      var dir = PONTOS[Math.floor(e.dir / 22.5 + 0.5) % 16];
       t.txt(6, L1, "po", "ondas");
       var alt = decimal(e.h), w = t.larg("jg", alt);
       t.txt(5, by, "jg", alt);
       t.txt(5 + w + 3, by, "j", "m");
-      t.txt(6, subY, "pob", "de " + dir + ", " + decimal(e.p) + " s");
+      var kd = rumo(e.dir), xs = 6;
+      if (kd >= 0) { t.seta(6, subY - 9, kd); xs = 6 + 9 + 5; }
+      t.txt(xs, subY, "pob", "ondas a cada " + (vazio(e.p) ? "--" : inteiro(e.p)) + " s");
     } else {
       t.txt(6, L1, "po", "temperatura");
       t.txt(5, by, "jg", decimal(e.ar) + "°");
@@ -351,6 +364,7 @@
       var vw = t.larg("j", c[1]);
       t.txt(x, vy, "j", c[1]);
       if (c[2]) t.txt(x + vw + 3, vy, "po", t.cabe(c[2], "po", 290 - (x + vw + 3)));
+      if (c[3] >= 0) t.seta(x + t.larg("po", c[0]) + 4, ly - 9, c[3]);
     }
     t.hl(6, 99, 284);
 
@@ -498,7 +512,7 @@
     var base = [0.33, 0.29, 0.17, -0.02, -0.25, -0.44, -0.52, -0.46, -0.29, -0.08, 0.12, 0.29, 0.40, 0.44, 0.40, 0.27, 0.08, -0.13, -0.25, -0.24, -0.12, 0.06, 0.23, 0.35];
     estado = {
       d: 1, m: 1, n: "Copacabana", desc: "Rio de Janeiro, Brasil", c: 2, fz: -10800, dia: hl.getUTCDate(),
-      h: 1.3, dir: 182, p: 9.8, a: 24.4, ar: 22.6, s: 23.1, u: 78, v: 14, r: 27, uv: 5, ch: 3, tx: 25, tn: 20,
+      h: 1.3, dir: 182, p: 9.8, a: 24.4, ar: 22.6, s: 23.1, u: 78, v: 14, vd: 135, r: 27, uv: 5, ch: 3, tx: 25, tn: 20,
       sr: "05:08", ss: "18:12", mare: base.concat(base)
     };
     versao = { atual: "1.2.0", nova: "1.2.0", situacao: "NO UPDATE" };

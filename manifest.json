@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.5.ota.bin",
-        "md5": "ad03f9364d80aa38cdd7e4218bcff53c",
-        "summary": "Com uma escolha aberta, os outros blocos da tela ficam bloqueados"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.6.ota.bin",
+        "md5": "193b7655842280c3526c0bb8b7bec6a1",
+        "summary": "Setas para onde vão as ondas e o vento, e o período escrito por extenso"
       }
     }
   ]
