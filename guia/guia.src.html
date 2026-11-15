@@ -692,16 +692,27 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
     document.getElementById("contador").textContent = atual + " de " + total;
     document.getElementById("voltar").disabled = atual === 1;
     document.getElementById("seguir").textContent = atual === total ? "Concluir" : "Próximo";
-    window.scrollTo(0, 0);
+    pular(0);
+  }
+  /* salto sem animação: o html tem scroll-behavior smooth, e no Safari do iPhone uma rolagem suave
+     que começa logo depois de a página mudar de tamanho é cancelada e a página fica no topo */
+  function pular(y) {
+    var raiz = document.documentElement;
+    raiz.style.scrollBehavior = "auto";
+    window.scrollTo(0, y);
+    raiz.style.scrollBehavior = "";
   }
   function entrar() { document.body.classList.add("modo-passo"); mostrar(1); }
   function sair(destino) {
     document.body.classList.remove("modo-passo");
     passosEl.forEach(function (s) { s.classList.remove("ativo"); });
     var alvo = document.getElementById(destino || "passo-1");
+    function irAoAlvo() { pular(alvo.getBoundingClientRect().top + window.scrollY); }
     requestAnimationFrame(function () {
       paineis.forEach(medir);
-      alvo.scrollIntoView({ behavior: "auto" });
+      irAoAlvo();
+      // confere de novo depois que a página termina de se montar, caso algo acima tenha mudado de altura
+      setTimeout(function () { if (Math.abs(alvo.getBoundingClientRect().top) > 2) irAoAlvo(); }, 150);
     });
   }
   document.getElementById("comecar").addEventListener("click", entrar);
