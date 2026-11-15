@@ -47,7 +47,7 @@ cat > manifest.json <<JSON
 }
 JSON
 
-git add manifest.json "$DESTINO" firmware/painel-do-mar.yaml
+git add manifest.json "$DESTINO" firmware/painel-do-mar.yaml firmware/pagina pagina
 git commit -m "Firmware de presente $VERSAO: $RESUMO"
 git push origin main
 echo "Publicada a versão $VERSAO. Os painéis atualizam em até 6 horas."

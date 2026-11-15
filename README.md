@@ -7,10 +7,12 @@ Placa ESP32-C3 Super Mini com display e-ink WeAct de 2,9" preto e branco (SSD168
 ## Estrutura
 
 - `firmware/copacabana.yaml`: firmware da unidade de teste do João (`copacabana.local`, 10.0.0.100), ligada ao Home Assistant. Copacabana fixa por `substitutions`.
-- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.1.0. Sem Home Assistant e sem rede gravada. O Wi-Fi e o lugar são configurados pelo celular, com QR codes na tela, e a mesma página da placa tem listas para escolher o número grande, os quatro quadros e a faixa de baixo. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
+- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.2.0. Sem Home Assistant e sem rede gravada. O Wi-Fi é configurado pelo celular com o QR code da tela, e o resto na página da placa. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
+- `firmware/pagina/`: a página da placa, já montada (`painel.js`), que o firmware embute com `js_include`. Ela desenha a tela do painel igual à do aparelho, com as partes que dá para trocar marcadas, e busca o lugar direto no Open-Meteo pelo celular.
+- `pagina/`: a fonte da página (`painel.src.js`, `painel.css`, `glifos.json`). Depois de mudar, rode `python3 pagina/montar.py` e compile o firmware. `glifos.py` gera os desenhos das letras a partir das fontes do firmware.
 - `manifest.json` e `ota/`: a versão publicada para os painéis baixarem pela internet.
 - `scripts/publicar-atualizacao.sh`: publica uma versão nova (ver abaixo).
-- `firmware/fonts/`: Pixel Operator. A Jersey 15 vem do Google Fonts (`gfonts://`).
+- `firmware/fonts/`: Pixel Operator e Jersey 15 (esta só para `pagina/glifos.py`, porque o firmware a baixa do Google Fonts com `gfonts://`).
 - `firmware/secrets.example.yaml`: modelo do `secrets.yaml`, que fica fora do git.
 - `docs/como-configurar.txt`: instruções que acompanham o presente.
 - `case/`: caixa impressa em 3D, com os STL e os scripts em Python que geram as peças.
@@ -31,7 +33,7 @@ Diferença entre o repo e a pasta do ESPHome: aqui a chave de criptografia da AP
 
 ## Atualização pela internet
 
-Os painéis com o firmware de presente consultam `https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json` 2 minutos depois de ligar e depois a cada 6 horas. Se a versão no manifesto for diferente da gravada no painel, ele baixa o arquivo de `ota/`, confere o MD5, grava e reinicia. Wi-Fi, lugar e escolhas da tela continuam salvos. Durante a gravação, a tela mostra "Atualizando".
+Os painéis com o firmware de presente consultam `https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json` 2 minutos depois de ligar e depois a cada 6 horas. Se a versão no manifesto for diferente da gravada no painel, ele baixa o arquivo de `ota/`, confere o MD5, grava e reinicia. Wi-Fi, lugar e escolhas da tela continuam salvos, a não ser quando a versão nova muda o nome de uma escolha (da 1.1 para a 1.2 as escolhas da tela voltaram ao padrão). Durante a gravação, a tela mostra "Atualizando".
 
 Para lançar uma versão nova:
 
@@ -51,4 +53,5 @@ Inspirada no rádio-relógio Braun DN40, do Dieter Rams. Os STL e os scripts est
 - Linear: projeto "Painel do mar de Copacabana" (P-U-34)
 - Guia: https://claude.ai/artifact/L1XC1gLfUt4LkFTJd9iMZn
 - Emulador: https://claude.ai/artifact/7qfgGxfVb63JQbTQMim1Er
+- Protótipo da página da placa: https://claude.ai/artifact/NfawX41DHStgrv9TaHGGUT (com `#primeiro-uso` no fim, abre como um painel sem lugar)
 - Briefing: https://claude.ai/artifact/Lj2MPrTvqQbp26sLZ4yu7U

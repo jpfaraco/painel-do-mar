@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.1.0.ota.bin",
-        "md5": "44108e67c3a4aadb547d9d5d3c80e2d2",
-        "summary": "Escolha dos quadros da tela e atualização pela internet"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.0.ota.bin",
+        "md5": "3fb04ddb55ef8d1b981e98b402186f4b",
+        "summary": "Página da placa nova: a tela desenhada como no painel, com as partes marcadas para trocar"
       }
     }
   ]
