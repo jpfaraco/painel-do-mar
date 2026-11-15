@@ -15,7 +15,7 @@ Painel do Mar: como configurar
 
 Para escolher o que aparece na tela: a página do passo 5 mostra a tela do painel com contornos azuis em volta de cada parte. Toque numa parte para escolher o que ela mostra, ou no nome do lugar para trocar o texto do alto. O painel muda em alguns segundos.
 
-Para voltar à página depois: tire o painel da tomada e ligue de novo. Por 30 segundos, a tela mostra o código QR da página. Guarde o endereço que aparece embaixo do código, porque a página continua funcionando nele enquanto o celular estiver no Wi-Fi da casa.
+Para voltar à página depois: tire o painel da tomada e ligue de novo. Por 30 segundos, a tela mostra o código QR da página, e é só apontar a câmera para ele. Use sempre o código que aparece na hora, porque o endereço da página pode mudar, por exemplo depois de uma falta de luz.
 
 Se trocar de internet ou de senha do Wi-Fi: o painel percebe sozinho e, em até 2 minutos, a tela volta a mostrar "Configurar Wi-Fi". É só repetir os passos 2 e 3.
 
