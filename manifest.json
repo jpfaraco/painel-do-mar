@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.3.ota.bin",
-        "md5": "b8780452d7dd00e95e3b8c6091d0b78f",
-        "summary": "Versão visível na página e escolhas da tela que não se desfazem no celular"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.4.ota.bin",
+        "md5": "67fe2e66713dd7d86f541981f22b0ed0",
+        "summary": "Atualização completa da tela de verdade a cada mudança"
       }
     }
   ]

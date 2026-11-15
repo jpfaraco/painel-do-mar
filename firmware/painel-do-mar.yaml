@@ -8,7 +8,7 @@ substitutions:
   senha_config: "configurar"
   # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
   # e o mesmo número no manifest.json do repositório.
-  versao: "1.2.3"
+  versao: "1.2.4"
   # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
@@ -616,7 +616,13 @@ display:
         struct Acesso : esphome::waveshare_epaper::WaveshareEPaper2P9InV2R2 {
           static uint32_t esphome::waveshare_epaper::WaveshareEPaper2P9InV2R2::*contador() { return &Acesso::at_update_; }
         };
-        if (!id(so_relogio)) id(tela)->*Acesso::contador() = 0;
+        if (!id(so_relogio)) {
+          // Depois de uma parcial, o controlador fica com a tabela de onda parcial carregada, e a
+          // completa sozinha não pisca. Reiniciar o controlador antes, como na hora de ligar,
+          // faz a atualização completa de verdade: a tela inverte e volta limpa.
+          id(tela)->initialize();
+          id(tela)->*Acesso::contador() = 0;
+        }
         id(so_relogio) = false;
       }
 
