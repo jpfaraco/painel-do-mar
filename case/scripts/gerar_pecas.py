@@ -11,11 +11,11 @@ os.makedirs("saida", exist_ok=True)
 c, t, f = corpo(), tampa(), frente()
 
 # corpo: deitado sobre a lateral direita, como foi modelado
-tc = salvar(c, "saida/copacabana-corpo-branco.stl")
+tc = salvar(c, "saida/corpo.stl")
 # tampa: virada com a face de fora para baixo
-tt = salvar(t, "saida/copacabana-tampa-lateral-branco.stl", trimesh.transformations.rotation_matrix(np.pi, [0, 1, 0]))
+tt = salvar(t, "saida/tampa-lateral.stl", trimesh.transformations.rotation_matrix(np.pi, [0, 1, 0]))
 # frente: face da frente para baixo, como foi modelada
-tf = salvar(f, "saida/copacabana-frente-preto.stl")
+tf = salvar(f, "saida/frente.stl")
 
 for nome, m in (("corpo", tc), ("tampa", tt), ("frente", tf)):
     mm = m.copy(); mm.merge_vertices()

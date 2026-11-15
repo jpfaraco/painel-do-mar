@@ -19,7 +19,7 @@ DC = 40.25      # posição do centro da frente ao longo da face inclinada, a pa
 W = 104.0       # largura da caixa
 WALL = 2.5      # espessura das paredes
 OPEN = 20.2     # meia altura da abertura da frente no corpo
-FL = 22.2       # meia altura da aba de trás da frente preta (a parte que corre nos trilhos)
+FL = 22.2       # meia altura da aba de trás da frente (a parte que corre nos trilhos)
 Z0, Z1 = WALL, W - WALL   # a lateral direita fechada vai até Z0, a borda aberta fica em Z1
 ZC = W / 2
 

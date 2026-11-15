@@ -1,4 +1,4 @@
-"""Peças da caixa: corpo, tampa lateral e frente preta.
+"""Peças da caixa: corpo, tampa lateral e frente.
 
 As folgas no topo deste arquivo foram calibradas com peças de teste impressas numa
 Prusa Mini com bico de 0,8 mm, camada de 0,3 mm e 3 perímetros. Com outro bico ou outra
@@ -9,10 +9,10 @@ from shapely.ops import nearest_points
 from geo import *
 
 # ---------- folgas calibradas ----------
-FOLGA_FRENTE = 0.15   # folga do modelo da frente preta (a frente impressa sai diferente, ver abaixo)
+FOLGA_FRENTE = 0.15   # folga do modelo da frente (a frente impressa sai diferente, ver abaixo)
 BUMP = 1.20           # altura do dente das quatro abas da tampa
 
-# Medidas da frente preta IMPRESSA com a face na mesa e suporte embaixo da aba. A aba cresce
+# Medidas da frente IMPRESSA com a face na mesa e suporte embaixo da aba. A aba cresce
 # para baixo, na direção da face, porque é impressa em cima do suporte. O canal do trilho é
 # desenhado a partir destas medidas, e não do modelo da frente.
 ABA_FRENTE = 1.70        # da face da frente até a face da aba que encosta na parede
@@ -20,6 +20,7 @@ ABA_ESPESSURA = 2.10     # espessura da aba
 BORDA_ABA = (OPEN - 0.2 - FOLGA_FRENTE) - 0.10 + 2.00   # borda da aba no sentido da altura
 FOLGA_CANAL_N = 0.40     # folga na espessura: degrau 1 do teste em escada, que deslizou bem
 FOLGA_CANAL_V = 0.50     # folga na altura: degrau 1 do teste em escada
+R_CHANFRO = 2.10         # raio dos cantos da janela na face da frente
 
 # ---------- trilhos da frente ----------
 FRENTE_CANAL = ABA_FRENTE - 0.10                            # a parede da frente termina 0,1 mm antes da aba
@@ -147,17 +148,20 @@ def tampa(bump=BUMP):
 
 
 def frente(folga=FOLGA_FRENTE, comprimento=None):
-    """Frente preta, em coordenadas próprias: u ao longo da largura, v ao longo da face, w para dentro.
+    """Frente, em coordenadas próprias: u ao longo da largura, v ao longo da face, w para dentro.
     Com comprimento, gera só um pedaço reto sem janela, para testes de encaixe."""
     PU = (Z1 - Z0) / 2 - 0.2 - folga if comprimento is None else comprimento / 2
     f = (bloco(-PU, PU, -(OPEN - 0.2 - folga), OPEN - 0.2 - folga, 0, 2.5)
          + bloco(-PU, PU, -(FL - folga), FL - folga, 2.5, 4.0 - folga))
     if comprimento is not None:
         return f
-    # janela 0,5 mm maior que a área de imagem, com chanfro de 60° em relação à face
+    # janela 0,5 mm maior que a área de imagem, com chanfro de 60° em relação à face.
+    # Na face, a abertura tem cantos arredondados (raio R_CHANFRO), que afinam até quase
+    # sumir rente ao vidro, 3,5 mm para dentro.
     jan = bloco(-33.93, 33.93, -14.96, 14.96, -1, 5)
-    ch = Manifold.batch_hull([bloco(-35.95, 35.95, -16.98, 16.98, -0.01, 0.0),
-                              bloco(-33.93, 33.93, -14.96, 14.96, 3.49, 3.5)])
+    cantos = [Manifold.cylinder(0.01, R_CHANFRO, R_CHANFRO, 64).translate([su * (35.95 - R_CHANFRO), sv * (16.98 - R_CHANFRO), -0.01])
+              for su in (-1, 1) for sv in (-1, 1)]
+    ch = Manifold.batch_hull(cantos + [bloco(-33.93, 33.93, -14.96, 14.96, 3.49, 3.5)])
     f = f - jan - ch
     # quatro pinos que entram nos furos dos cantos da placa da tela
     for hu in (2.9 - 48.92, 88.9 - 48.92):

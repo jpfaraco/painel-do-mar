@@ -1,15 +1,16 @@
-# Painel do Mar, versão para presente
+# Painel do Mar
 # ESP32-C3 Super Mini + e-ink WeAct 2,9" preta e branca, 296 × 128 (controlador SSD1680)
-# Não depende de Home Assistant nem de servidor: o Wi-Fi e o lugar são configurados pelo celular.
+# Funciona sozinho, sem servidor: o Wi-Fi e o lugar são configurados pelo celular.
 # Dados: Open-Meteo (sem cadastro e sem chave)
 
 substitutions:
   rede_config: "Painel do Mar"
   senha_config: "configurar"
-  # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
-  # e o mesmo número no manifest.json do repositório.
+  # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui e rode
+  # scripts/publicar-atualizacao.sh, que escreve o manifest.json.
   versao: "1.2.7"
-  # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
+  # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova.
+  # Num fork, troque pelo endereço do manifest.json do seu repositório.
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
 esphome:

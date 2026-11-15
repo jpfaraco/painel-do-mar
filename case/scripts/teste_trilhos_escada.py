@@ -1,7 +1,7 @@
 """Teste de trilhos em escada: uma peça só, com cinco versões do trilho empilhadas,
 da mais folgada (em cima, por onde a frente entra) até a mais justa (embaixo).
 
-As medidas partem da frente preta impressa com a face na mesa e suporte embaixo da aba:
+As medidas partem da frente impressa com a face na mesa e suporte embaixo da aba:
   espessura da aba        1,35 mm no modelo, 2,10 mm impressa
   recuo da aba (da face)  2,50 mm no modelo, 1,70 mm impressa
   profundidade da aba     2,20 mm no modelo, 2,00 mm impressa
@@ -58,9 +58,9 @@ for i, (fn, fv) in enumerate(DEGRAUS):
     peca = peca + m
     print(f"degrau {i+1}: folga na espessura {fn:.2f} mm, na altura {fv:.2f} mm "
           f"(lábio a {-labio_n:.2f} mm da face, parede do canal a {parede_v:.2f} mm do centro)")
-t = salvar(limpar(peca), f"{OUT}/teste-trilhos-escada-branco.stl")
+t = salvar(limpar(peca), f"{OUT}/teste-trilhos-escada.stl")
 # as emendas entre degraus deixam faces soltas de volume zero: fica só a peça principal
 mm = t.copy(); mm.merge_vertices()
 mm = max(mm.split(only_watertight=False), key=lambda p: p.volume)
-mm.export(f"{OUT}/teste-trilhos-escada-branco.stl")
+mm.export(f"{OUT}/teste-trilhos-escada.stl")
 print("fechada:", mm.is_watertight, " tamanho:", np.round(t.extents, 1), "mm  PLA ~", round(t.volume * 1.24 / 1000 * 0.55), "g")

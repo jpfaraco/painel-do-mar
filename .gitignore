@@ -1,5 +1,7 @@
 secrets.yaml
 .esphome/
+__pycache__/
+case/scripts/saida/
 *.bin
-# firmwares publicados para atualização pela internet
-!ota/*.bin
+# firmware publicado: atualização pela internet (ota) e primeira gravação pelo USB (factory)
+!binarios/*.bin

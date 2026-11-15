@@ -5,7 +5,7 @@
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.7.ota.bin",
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/binarios/painel-do-mar-1.2.7.ota.bin",
         "md5": "c45a36f83382cfd3cfe2e1b42eeb32d8",
         "summary": "Longe do mar: quadros de terra sem repetir e opções do mar desabilitadas"
       }

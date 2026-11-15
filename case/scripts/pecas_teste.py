@@ -27,7 +27,7 @@ espinha = INNER.intersection(frect(-40, 40, -11.5, -14.5)).buffer(0.3)   # liga 
 secao = secao.union(espinha).buffer(0)
 secao = secao.difference(canal()).buffer(0)
 fatia = ext(secao.convex_hull, 0, 2.5) + ext(secao, 2.4, 22.5)
-salvar(limpar(fatia), f"{OUT}/teste-1a-fatia-trilhos-branco.stl")
+salvar(limpar(fatia), f"{OUT}/teste-1a-fatia-trilhos.stl")
 
 pedacos = None
 for i, fo in enumerate(FOLGAS_TESTE):
@@ -52,7 +52,7 @@ for pt in PTS2:
         if prof <= 0.2:
             continue
         anel_t = anel_t - ext(anel(INT2, prof, -0.05).intersection(jan), z - 0.01, z + 0.26)
-salvar(limpar(anel_t), f"{OUT}/teste-2a-anel-travas-branco.stl")
+salvar(limpar(anel_t), f"{OUT}/teste-2a-anel-travas.stl")
 
 def tampa_teste(bump, k):
     t = ext(EXT2.buffer(-0.05, join_style=1), ZA, ZA + 2.5)
@@ -85,7 +85,7 @@ salvar(tampas, f"{OUT}/teste-2b-tampas-dentes.stl")
 # ---------- teste 3 ----------
 regiao = OUTER.difference(INNER).intersection(box(-1, -1, 42, 26)).union(BLOCO)
 gaveta = ext(regiao, Z_FUNDO - 4.0, Z1) - ext(CANAL, Z_FUNDO, W + 1) - furo_usb() - janela_botoes()
-salvar(limpar(gaveta), f"{OUT}/teste-3-gaveta-super-mini-branco.stl")
+salvar(limpar(gaveta), f"{OUT}/teste-3-gaveta-super-mini.stl")
 
 for f in sorted(os.listdir(OUT)):
     m = trimesh.load(f"{OUT}/{f}"); m.merge_vertices()

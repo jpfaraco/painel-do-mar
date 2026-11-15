@@ -1,58 +1,86 @@
-# Painel do mar
+# Painel do Mar
 
-Display e-ink pequeno que, ao ser ligado, mostra o mar e o tempo de uma praia, sem nenhuma interação. As unidades são feitas só pra dar de presente.
+![O Painel do Mar mostrando ondas, água, ar, vento, índice UV e a maré de Copacabana](docs/og.png)
 
-Placa ESP32-C3 Super Mini com display e-ink WeAct de 2,9" preto e branco (SSD1680, 296 × 128), alimentada por USB-C. Firmware em ESPHome. Os dados vêm das APIs gratuitas do Open-Meteo (marinha, com `cell_selection=sea`, e previsão do tempo). A licença gratuita do Open-Meteo vale só pra uso pessoal e não comercial.
+Um painel de papel eletrônico que mostra o mar e o tempo de um lugar: altura, direção e período das ondas, temperatura da água e do ar, vento, índice UV e a curva da maré do dia. Ele funciona sozinho, sem servidor e sem aplicativo. O Wi-Fi e o lugar são configurados pelo celular, com um código QR que aparece na tela, e o firmware se atualiza pela internet.
 
-## Estrutura
+Guia de configuração, para quem recebe um painel pronto: https://paineldomar.com.br
 
-- `firmware/copacabana.yaml`: firmware da unidade de teste do João (`copacabana.local`, 10.0.0.100), ligada ao Home Assistant. Copacabana fixa por `substitutions`.
-- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.2.7. Sem Home Assistant e sem rede gravada. O Wi-Fi é configurado pelo celular com o QR code da tela, e o resto na página da placa. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
-- `firmware/pagina/`: a página da placa, já montada (`painel.js`), que o firmware embute com `js_include`. Ela desenha a tela do painel igual à do aparelho, com as partes que dá para trocar marcadas, e busca o lugar direto no Open-Meteo pelo celular.
-- `pagina/`: a fonte da página (`painel.src.js`, `painel.css`, `glifos.json`). Depois de mudar, rode `python3 pagina/montar.py` e compile o firmware. `glifos.py` gera os desenhos das letras a partir das fontes do firmware.
-- `manifest.json` e `ota/`: a versão publicada para os painéis baixarem pela internet.
-- `scripts/publicar-atualizacao.sh`: publica uma versão nova (ver abaixo).
-- `firmware/fonts/`: Pixel Operator e Jersey 15 (esta só para `pagina/glifos.py`, porque o firmware a baixa do Google Fonts com `gfonts://`).
-- `firmware/secrets.example.yaml`: modelo do `secrets.yaml`, que fica fora do git.
-- `docs/`: o site https://paineldomar.com.br, servido pelo GitHub Pages a partir desta pasta. É o guia ilustrado de configuração para quem ganha o painel. `docs/como-configurar.txt` é a versão em texto.
-- `guia/`: a fonte do site. Depois de mudar `guia.src.html`, rode `python3 guia/montar.py`. Se o desenho da tela mudar no firmware, rode antes `python3 guia/gerar_telas.py`.
-- `case/`: caixa impressa em 3D, com os STL e os scripts em Python que geram as peças.
+## Como funciona
 
-## Compilar e gravar
+Uma ESP32-C3 Super Mini busca os dados no [Open-Meteo](https://open-meteo.com) a cada 30 minutos e desenha a tela, uma e-ink WeAct de 2,9" preta e branca, com 296 × 128 pixels. O firmware é escrito em [ESPHome](https://esphome.io). O mar vem da API marinha do Open-Meteo, no ponto de mar mais próximo do lugar escolhido, e o resto vem da API de previsão. Longe do mar, a tela troca as ondas pela temperatura, a maré pelo nascer e pôr do sol, e os quadros que dependem do mar por sensação térmica, chuva prevista, vento e índice UV.
 
-O ESPHome roda no Raspberry Pi 4 (container `esphome-esphome-1`, versão 2026.9.1, pasta `/DATA/AppData/esphome/config` montada em `/config`). A cópia em uso está lá, e este repo é a fonte versionada.
+A placa serve uma página própria na rede da casa. Nela dá para trocar o lugar, o nome que aparece no alto e o que cada parte da tela mostra.
 
-```sh
-docker exec esphome-esphome-1 esphome config /config/copacabana.yaml > /dev/null && echo ok
-docker exec esphome-esphome-1 esphome compile /config/copacabana.yaml
-docker exec esphome-esphome-1 esphome upload /config/copacabana.yaml --device copacabana.local
-```
+## Material
 
-A primeira gravação de uma placa nova é por USB, no computador, com o `firmware.factory.bin` em web.esphome.io. O container no Pi não tem acesso a USB. Se a porta piscar na lista do Chrome, segure BOOT, aperte e solte RESET e solte BOOT.
+| Item | Quantidade | Observação |
+|---|---|---|
+| ESP32-C3 Super Mini | 1 | |
+| Tela e-ink WeAct 2,9" preta e branca | 1 | Controlador SSD1680. Vem com um cabo de 8 fios. A versão com vermelho usa outro controlador e não funciona com este firmware. |
+| Barra de pinos 2,54 mm com 8 pinos | 2 | Costuma vir com a Super Mini. |
+| Cabo USB-C e carregador de 5 V | 1 | Qualquer carregador de celular de 1 A ou mais. Um carregador com saída USB-A e cabo USB-A para USB-C funciona com qualquer lote da Super Mini. Com cabo USB-C dos dois lados, algumas placas não ligam. |
+| Caixa impressa em 3D | 1 | Três peças, uns 110 g de PLA. Ver [`case/`](case/). |
 
-Diferença entre o repo e a pasta do ESPHome: aqui a chave de criptografia da API vem de `!secret copacabana_api_key`. Na pasta do Pi ela ainda está escrita direto no YAML.
+Ferramentas: ferro de solda, estanho e um computador com Chrome ou Edge para a primeira gravação.
+
+## Ligações
+
+Solde as barras de pinos na Super Mini e ligue os 8 fios do cabo da tela assim:
+
+| Tela | Cor do fio no cabo da WeAct | Super Mini |
+|---|---|---|
+| `VCC` | vermelho | `3.3` |
+| `GND` | preto | `G` |
+| `SCL` | verde | `4` |
+| `SDA` | amarelo | `6` |
+| `CS` | azul | `7` |
+| `D/C` | branco | `5` |
+| `RES` | laranja | `3` |
+| `BUSY` | roxo | `10` |
+
+Se o seu cabo vier com outras cores, siga os nomes impressos na placa da tela.
+
+## Gravar o firmware
+
+1. Ligue a Super Mini no computador com um cabo USB-C que transmita dados.
+2. Abra [web.esphome.io](https://web.esphome.io) no Chrome ou no Edge e clique em **Connect**.
+3. Clique em **Install** e escolha o arquivo `painel-do-mar-<versão>.factory.bin` da pasta [`binarios/`](binarios/).
+4. Ligue o painel num carregador e siga o guia em https://paineldomar.com.br.
+
+Se a porta da placa aparecer e sumir da lista do navegador, segure o botão BOOT, aperte e solte o RESET e depois solte o BOOT.
+
+Para compilar você mesmo, use o ESPHome 2026.9.1 ou mais novo e rode `esphome run firmware/painel-do-mar.yaml`. Versões mais antigas do ESPHome não leem as respostas do Open-Meteo.
 
 ## Atualização pela internet
 
-Os painéis com o firmware de presente consultam `https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json` 2 minutos depois de ligar e depois a cada 6 horas. Se a versão no manifesto for diferente da gravada no painel, ele baixa o arquivo de `ota/`, confere o MD5, grava e reinicia. Wi-Fi, lugar e escolhas da tela continuam salvos, a não ser quando a versão nova muda o nome de uma escolha (da 1.1 para a 1.2 as escolhas da tela voltaram ao padrão). Durante a gravação, a tela mostra "Atualizando".
+O painel confere o [`manifest.json`](manifest.json) deste repositório 2 minutos depois de se conectar e, depois, a cada 6 horas. Se a versão do manifesto for diferente da gravada, ele baixa o arquivo `.ota.bin` de `binarios/`, confere o MD5, grava e reinicia. O Wi-Fi, o lugar e as escolhas da tela continuam salvos. Durante a gravação, a tela mostra "Atualizando".
+
+Isso vale para qualquer painel gravado com o firmware daqui. Se você fizer um fork e mudar o firmware, troque o endereço em `manifesto`, no começo de `firmware/painel-do-mar.yaml`, pelo do seu repositório. Sem isso, o seu painel volta para a versão deste repositório na primeira atualização.
 
 Para lançar uma versão nova:
 
 1. Aumente `versao` em `firmware/painel-do-mar.yaml`.
-2. Compile e grave essa versão no seu painel, e confira que ele conecta e mostra os dados. Um firmware que não conecta no Wi-Fi não consegue buscar a correção, então nada vai para o repositório sem rodar numa placa antes.
-3. Baixe o arquivo OTA: no ESPHome, Install → Manual download → OTA format.
-4. Rode `./scripts/publicar-atualizacao.sh caminho/do/firmware.ota.bin "o que mudou"`. O script copia o arquivo para `ota/`, escreve o `manifest.json` com o MD5, faz o commit e o push.
+2. Compile, grave num painel e confira que ele conecta e mostra os dados. Um firmware que não conecta no Wi-Fi não consegue baixar a correção, então nada é publicado sem rodar numa placa antes.
+3. Rode `./scripts/publicar-atualizacao.sh firmware.ota.bin firmware.factory.bin "o que mudou"`. O script troca os arquivos de `binarios/`, escreve o `manifest.json` com o MD5, faz o commit e o push.
 
-Quem tem acesso a este repositório consegue mandar firmware para todos os painéis, então a conta do GitHub precisa de verificação em duas etapas.
+Quem pode publicar neste repositório consegue mandar firmware para todos os painéis, então a conta precisa de verificação em duas etapas.
 
-## Caixa
+## Estrutura
 
-Inspirada no rádio-relógio Braun DN40, do Dieter Rams. Os STL e os scripts estão em `case/`, com instruções em `case/README.md`.
+- [`firmware/painel-do-mar.yaml`](firmware/painel-do-mar.yaml): o firmware.
+- [`firmware/pagina/`](firmware/pagina/): a página da placa já montada (`painel.js`), que o firmware embute com `js_include`.
+- [`firmware/fonts/`](firmware/fonts/): Pixel Operator, usada pelo firmware, e Jersey 15, usada só por `pagina/glifos.py`. O firmware baixa a Jersey 15 do Google Fonts na compilação.
+- [`pagina/`](pagina/): a fonte da página da placa. Ela desenha a tela pixel por pixel, igual ao aparelho, com as letras das fontes do firmware (`glifos.json`, gerado por `glifos.py`). Depois de mudar, rode `python3 pagina/montar.py` e compile o firmware.
+- [`binarios/`](binarios/) e [`manifest.json`](manifest.json): a versão publicada, para gravar pelo USB (`.factory.bin`) e para a atualização pela internet (`.ota.bin`).
+- [`scripts/publicar-atualizacao.sh`](scripts/publicar-atualizacao.sh): publica uma versão nova.
+- [`case/`](case/): os STL da caixa e o código em Python que gera as peças.
+- [`docs/`](docs/): o site https://paineldomar.com.br, servido pelo GitHub Pages. `docs/como-configurar.txt` é a versão em texto do guia.
+- [`guia/`](guia/): a fonte do site. Depois de mudar `guia.src.html`, rode `python3 guia/montar.py`. Se o desenho da tela mudar no firmware, rode antes `python3 guia/gerar_telas.py`.
 
-## Links
+## Créditos
 
-- Linear: projeto "Painel do mar de Copacabana" (P-U-34)
-- Guia: https://claude.ai/artifact/L1XC1gLfUt4LkFTJd9iMZn
-- Emulador: https://claude.ai/artifact/7qfgGxfVb63JQbTQMim1Er
-- Protótipo da página da placa: https://claude.ai/artifact/NfawX41DHStgrv9TaHGGUT (com `#primeiro-uso` no fim, abre como um painel sem lugar)
-- Briefing: https://claude.ai/artifact/Lj2MPrTvqQbp26sLZ4yu7U
+- Dados do [Open-Meteo](https://open-meteo.com), sob a licença CC BY 4.0. A API gratuita vale para uso não comercial.
+- Fonte [Pixel Operator](https://notabug.org/HarvettFox96/ttf-pixeloperator), de Jayvee Enaguas, em domínio público (CC0).
+- Fonte [Jersey 15](https://fonts.google.com/specimen/Jersey+15), de Sarah Cadigan-Fried, sob a SIL Open Font License.
+- A caixa é inspirada no rádio-relógio Braun DN40, desenhado por Dieter Rams.

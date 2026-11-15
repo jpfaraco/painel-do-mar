@@ -1,5 +1,7 @@
 Painel do Mar: como configurar
 
+Versão ilustrada: https://paineldomar.com.br
+
 1. Ligue o painel na tomada com o cabo USB-C. Em uns 30 segundos, a tela mostra "Configurar Wi-Fi" e um código QR.
 
 2. Aponte a câmera do celular para o código e toque no aviso que aparece, para entrar na rede "Painel do Mar". Se preferir, entre nela pelos ajustes de Wi-Fi do celular, com a senha "configurar".
@@ -20,5 +22,3 @@ Para voltar à página depois: tire o painel da tomada e ligue de novo. Por 30 s
 Se trocar de internet ou de senha do Wi-Fi: o painel percebe sozinho e, em até 2 minutos, a tela volta a mostrar "Configurar Wi-Fi". É só repetir os passos 2 e 3.
 
 Para apagar tudo e começar do zero: tire e ponha o cabo 5 vezes seguidas, com menos de 10 segundos entre uma e outra.
-
-Incorpora produto homologado pela Anatel sob número ____________ (preencha com o número do módulo da placa usada).

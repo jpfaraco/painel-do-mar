@@ -1,5 +1,5 @@
 /* Painel do Mar: página da placa.
-   Roda servida pela própria placa (ESPHome web_server versão 1, com js_include e css_include)
+   Roda servida pela própria placa (ESPHome web_server versão 3, com js_include e css_include)
    e também fora dela, em modo de demonstração, quando não encontra /events. */
 (function () {
   "use strict";

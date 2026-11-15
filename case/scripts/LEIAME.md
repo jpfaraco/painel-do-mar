@@ -1,7 +1,8 @@
 # Caixa do painel do mar: scripts de modelagem
 
-Scripts em Python que geram as três peças da caixa (corpo, tampa lateral e frente preta) e as
-peças de teste de encaixe. As medidas foram calibradas para uma Prusa Mini com bico de 0,8 mm,
+Scripts em Python que geram as três peças da caixa (corpo, tampa lateral e frente) e as
+peças de teste de encaixe. Com os valores que estão no código, `gerar_pecas.py` reproduz os STL
+da pasta `stl/`. As medidas foram calibradas para uma Prusa Mini com bico de 0,8 mm,
 camada de 0,3 mm e 3 perímetros.
 
 ## Instalação
@@ -21,7 +22,7 @@ Python 3.10 ou mais novo:
 - `geo.py`: perfil lateral inspirado no Braun DN40, sistema de coordenadas e funções de apoio.
   O perfil sai de cinco cantos com raio (costas embaixo, queixo, quina de cima da frente, início
   da rampa e topo das costas), multiplicados pela escala `SC`.
-- `caixa.py`: as peças. As medidas calibradas ficam no topo: as medidas da frente impressa (`ABA_FRENTE`, `ABA_ESPESSURA`, `BORDA_ABA`), as folgas do canal do trilho (`FOLGA_CANAL_N` e `FOLGA_CANAL_V`) e o dente da tampa (`BUMP`).
+- `caixa.py`: as peças. As medidas calibradas ficam no topo: as medidas da frente impressa (`ABA_FRENTE`, `ABA_ESPESSURA`, `BORDA_ABA`), as folgas do canal do trilho (`FOLGA_CANAL_N` e `FOLGA_CANAL_V`), o dente da tampa (`BUMP`) e o raio dos cantos da janela da frente (`R_CHANFRO`).
 - `teste_trilhos_escada.py`: peça de teste com cinco versões do trilho empilhadas, da mais folgada à mais justa.
 - `gerar_pecas.py`, `conferir.py` e `pecas_teste.py`: os scripts que você roda.
 
@@ -30,7 +31,7 @@ Python 3.10 ou mais novo:
 Em milímetros. `x` é a profundidade, de 0 nas costas até a ponta da frente. `y` é a altura, de 0
 na base. `z` é a largura, de 0 na lateral direita, que é fechada, até 104 na lateral esquerda,
 onde entra a tampa. O corpo é impresso deitado sobre a lateral direita, então `z` é a altura na
-impressora. Na frente preta, as coordenadas são próprias: `u` ao longo da largura, `v` ao longo
+impressora. Na frente, as coordenadas são próprias: `u` ao longo da largura, `v` ao longo
 da face inclinada e `w` para dentro da caixa.
 
 ## O que mudar e onde
