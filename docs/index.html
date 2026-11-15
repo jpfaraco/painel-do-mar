@@ -41,7 +41,9 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* nada pode passar da largura da tela: no Chrome do Android, uma sobra de poucos pixels alarga a página
+   e as barras fixas do passo a passo passam a ficar maiores que a tela, com o rodapé cortado */
+html { scroll-behavior: smooth; overflow-x: clip; }
 body {
   margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body);
   font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased;
@@ -207,7 +209,7 @@ footer { padding-block: 28px 48px; border-top: 1px solid var(--line); font-size:
 /* ---------- modo passo a passo ---------- */
 .topo-passo, .rodape-passo { display: none; }
 body.modo-passo .abertura, body.modo-passo .indice, body.modo-passo .ler, body.modo-passo .mudar, body.modo-passo .saber, body.modo-passo footer { display: none; }
-body.modo-passo .passo { display: none; border-top: 0; min-height: 100dvh; padding-block: calc(76px + env(safe-area-inset-top, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)); align-content: center; }
+body.modo-passo .passo { display: none; overflow-x: clip; border-top: 0; min-height: 100dvh; padding-block: calc(76px + env(safe-area-inset-top, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)); align-content: center; }
 body.modo-passo .passo.ativo { display: grid; }
 @media (prefers-reduced-motion: no-preference) {
   body.modo-passo .passo.ativo .grade { animation: entrar .5s var(--ease) both; }
