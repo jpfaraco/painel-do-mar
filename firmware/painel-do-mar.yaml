@@ -8,7 +8,7 @@ substitutions:
   senha_config: "configurar"
   # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
   # e o mesmo número no manifest.json do repositório.
-  versao: "1.2.0"
+  versao: "1.2.1"
   # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
@@ -129,6 +129,14 @@ globals:
     type: bool
     initial_value: "false"
   - id: tem_mar
+    type: bool
+    initial_value: "false"
+  # quando chegou a última resposta da API marinha (millis), para aguentar falhas passageiras
+  - id: mar_em
+    type: uint32_t
+    initial_value: "0"
+  # true só na troca do minuto, que pode usar a atualização parcial da tela
+  - id: so_relogio
     type: bool
     initial_value: "false"
   - id: falhou
@@ -369,6 +377,8 @@ script:
       - lambda: |-
           id(tem_lugar) = true;
           id(tem_dados) = false;
+          id(tem_mar) = false;
+          id(mar_em) = 0;
           id(modo) = 0;
           ESP_LOGI("lugar", "Lugar salvo: %.4f, %.4f", id(lat), id(lon));
       # mostra o nome novo com "buscando dados..." enquanto os dados chegam
@@ -389,7 +399,9 @@ script:
           timeout: 60s
       - lambda: |-
           id(falhou) = false;
-          id(tem_mar) = false;
+          // uma falha passageira da API marinha não troca o layout: os últimos dados do mar
+          // valem por até 6 horas, e só depois disso a tela passa para o layout sem mar
+          if (id(mar_em) == 0 || millis() - id(mar_em) > 6UL * 3600UL * 1000UL) id(tem_mar) = false;
       # previsão do tempo: obrigatória
       - http_request.get:
           url: !lambda |-
@@ -463,7 +475,7 @@ script:
             then:
               - lambda: |-
                   if (response->status_code != 200) {
-                    ESP_LOGI("mar", "Sem dados de mar para este lugar (HTTP %d)", response->status_code);
+                    ESP_LOGW("mar", "API marinha respondeu HTTP %d, mantendo os dados anteriores", response->status_code);
                     return;
                   }
                   json::parse_json(body, [](JsonObject root) -> bool {
@@ -483,12 +495,13 @@ script:
                     id(mare).clear();
                     for (size_t i = 0; i < 48 && i < nivel.size(); i++) id(mare).push_back(nivel[i] | 0.0f);
                     id(tem_mar) = km < 25 && !isnan(id(onda_altura)) && id(mare).size() >= 25;
+                    id(mar_em) = millis();
                     ESP_LOGI("mar", "Ponto de mar a %.0f km, ondas %.2f m, usar mar: %s", km, id(onda_altura), id(tem_mar) ? "sim" : "não");
                     return true;
                   });
           on_error:
             then:
-              - lambda: ESP_LOGI("mar", "Sem resposta da API marinha");
+              - lambda: ESP_LOGW("mar", "Sem resposta da API marinha, mantendo os dados anteriores");
       - if:
           condition:
             lambda: return !id(falhou);
@@ -542,6 +555,7 @@ time:
               condition:
                 lambda: return id(tem_dados) && id(modo) == 0;
               then:
+                - lambda: id(so_relogio) = true;
                 - component.update: tela
       - seconds: 30
         minutes: 0
@@ -589,6 +603,17 @@ display:
       const auto TINTA = COLOR_ON;
       const auto PAPEL = COLOR_OFF;
       it.fill(PAPEL);
+
+      // Toda atualização limpa a tela inteira (atualização completa, que pisca e apaga os restos
+      // da imagem anterior), menos a troca do minuto, que muda só o relógio e usa a parcial.
+      // A cada 30 parciais seguidas, o próprio driver faz uma completa.
+      {
+        struct Acesso : esphome::waveshare_epaper::WaveshareEPaper2P9InV2R2 {
+          static uint32_t esphome::waveshare_epaper::WaveshareEPaper2P9InV2R2::*contador() { return &Acesso::at_update_; }
+        };
+        if (!id(so_relogio)) id(tela)->*Acesso::contador() = 0;
+        id(so_relogio) = false;
+      }
 
       // ---------- estado para a página da placa ----------
       {

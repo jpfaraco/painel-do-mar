@@ -7,7 +7,7 @@ Placa ESP32-C3 Super Mini com display e-ink WeAct de 2,9" preto e branco (SSD168
 ## Estrutura
 
 - `firmware/copacabana.yaml`: firmware da unidade de teste do João (`copacabana.local`, 10.0.0.100), ligada ao Home Assistant. Copacabana fixa por `substitutions`.
-- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.2.0. Sem Home Assistant e sem rede gravada. O Wi-Fi é configurado pelo celular com o QR code da tela, e o resto na página da placa. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
+- `firmware/painel-do-mar.yaml`: firmware de presente, versão 1.2.1. Sem Home Assistant e sem rede gravada. O Wi-Fi é configurado pelo celular com o QR code da tela, e o resto na página da placa. Apaga Wi-Fi e lugar com 5 religadas seguidas. Busca atualizações neste repositório a cada 6 horas.
 - `firmware/pagina/`: a página da placa, já montada (`painel.js`), que o firmware embute com `js_include`. Ela desenha a tela do painel igual à do aparelho, com as partes que dá para trocar marcadas, e busca o lugar direto no Open-Meteo pelo celular.
 - `pagina/`: a fonte da página (`painel.src.js`, `painel.css`, `glifos.json`). Depois de mudar, rode `python3 pagina/montar.py` e compile o firmware. `glifos.py` gera os desenhos das letras a partir das fontes do firmware.
 - `manifest.json` e `ota/`: a versão publicada para os painéis baixarem pela internet.
