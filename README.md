@@ -84,3 +84,9 @@ Quem pode publicar neste repositório consegue mandar firmware para todos os pai
 - Fonte [Pixel Operator](https://notabug.org/HarvettFox96/ttf-pixeloperator), de Jayvee Enaguas, em domínio público (CC0).
 - Fonte [Jersey 15](https://fonts.google.com/specimen/Jersey+15), de Sarah Cadigan-Fried, sob a SIL Open Font License.
 - A caixa é inspirada no rádio-relógio Braun DN40, desenhado por Dieter Rams.
+
+## Licença
+
+O firmware, as páginas, os scripts e os arquivos da caixa estão sob a [licença MIT](LICENSE): dá para copiar, mudar, montar e vender painéis feitos com eles, desde que o aviso de licença venha junto. As fontes em `firmware/fonts/` seguem as licenças delas, citadas acima. A licença da Jersey 15 está em `firmware/fonts/OFL-Jersey15.txt`.
+
+Quem for vender painéis precisa de um plano pago do Open-Meteo, porque a API gratuita é só para uso não comercial.
