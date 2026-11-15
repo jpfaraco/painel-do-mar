@@ -70,7 +70,9 @@ body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit
 .pd-marca-sel{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--lin);box-sizing:border-box}
 .pd-sel .pd-marca-sel{border:6px solid var(--ac)}
 .pd-sel .pd-opcao-nome{font-weight:600}
-.pd-somar .pd-opcao-nome,.pd-somar .pd-opcao-valor{opacity:.55}
+.pd-somar{cursor:default}
+.pd-somar:hover{background:none}
+.pd-somar .pd-opcao-nome,.pd-somar .pd-opcao-valor,.pd-somar .pd-marca-sel{opacity:.4}
 .pd-somar .pd-opcao-valor{font-size:14px}
 .pd-busca{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pd-busca input,#pd-nome{flex:1 1 220px;min-width:0;font:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--lin);border-radius:12px;background:var(--bg);color:var(--ink);box-sizing:border-box;-webkit-appearance:none}
@@ -87,3 +89,4 @@ body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit
 .pd-ajuda{display:block;font-size:14px;color:var(--mut);margin-top:8px}
 .pd-ajuda.pd-aviso{color:var(--perigo)}
 @media (prefers-reduced-motion:reduce){.pd *{transition:none!important;animation:none!important}}
+.pd-opcao:disabled{color:inherit}

@@ -8,7 +8,7 @@ substitutions:
   senha_config: "configurar"
   # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
   # e o mesmo número no manifest.json do repositório.
-  versao: "1.2.6"
+  versao: "1.2.7"
   # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
@@ -815,9 +815,24 @@ display:
       int baixo = mar ? (int) id(sel_baixo).active_index().value_or(0) : 1;
       int quadro[4] = {(int) id(sel_q1).active_index().value_or(0), (int) id(sel_q2).active_index().value_or(1),
                        (int) id(sel_q3).active_index().value_or(4), (int) id(sel_q4).active_index().value_or(6)};
-      // água, potência e período só existem perto do mar: longe dele, cada quadro usa um valor de terra
-      const int TERRA[4] = {2, 3, 4, 6};
-      for (int i = 0; i < 4; i++) if (!mar && (quadro[i] == 0 || quadro[i] == 8 || quadro[i] == 9)) quadro[i] = TERRA[i];
+      // Água, potência e período só existem perto do mar. Longe dele, o quadro mostra o dado de terra
+      // da sua posição (sensação, chuva, vento, UV) ou, se esse já estiver em outro quadro, o próximo
+      // da ORDEM que ainda não está na tela. O ar fica de fora porque já é o número grande. Igual à página.
+      if (!mar) {
+        const int TERRA[4] = {2, 7, 4, 6};
+        const int ORDEM[8] = {2, 7, 4, 6, 3, 5, 10, 11};
+        auto so_mar = [](int k) { return k == 0 || k == 8 || k == 9; };
+        bool usado[12] = {false};
+        bool trocar[4];
+        for (int i = 0; i < 4; i++) { trocar[i] = so_mar(quadro[i]); if (!trocar[i]) usado[quadro[i]] = true; }
+        for (int i = 0; i < 4; i++) {
+          if (!trocar[i]) continue;
+          int novo = TERRA[i];
+          if (usado[novo]) for (int k : ORDEM) if (!usado[k]) { novo = k; break; }
+          quadro[i] = novo;
+          usado[novo] = true;
+        }
+      }
 
       auto valor_ou_traco = [&](float x, std::string s) -> std::string { return isnan(x) ? std::string("--") : s; };
       auto celula = [&](int k) -> Celula {

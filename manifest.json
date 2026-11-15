@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.6.ota.bin",
-        "md5": "193b7655842280c3526c0bb8b7bec6a1",
-        "summary": "Setas para onde vão as ondas e o vento, e o período escrito por extenso"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.7.ota.bin",
+        "md5": "c45a36f83382cfd3cfe2e1b42eeb32d8",
+        "summary": "Longe do mar: quadros de terra sem repetir e opções do mar desabilitadas"
       }
     }
   ]

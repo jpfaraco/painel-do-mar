@@ -24,7 +24,22 @@
   ];
   var GRANDES = [["ondas", "Altura das ondas", 1], ["temperatura", "Temperatura do ar", 0]];
   var BAIXOS = [["mare", "Curva da maré", 1], ["sol", "Nascer e pôr do sol", 0]];
-  var TERRA = { q1: "sensacao", q2: "umidade", q3: "vento", q4: "uv" };
+  /* Longe do mar, um quadro com dado que só existe perto do mar (água, potência, período) mostra o
+     dado de terra da sua posição. Se esse já estiver em outro quadro, usa o próximo da ORDEM que
+     ainda não está na tela. A temperatura do ar fica de fora, porque já é o número grande. Igual ao firmware. */
+  var TERRA = { q1: "sensacao", q2: "chuva", q3: "vento", q4: "uv" };
+  var ORDEM_TERRA = ["sensacao", "chuva", "vento", "uv", "umidade", "rajadas", "nascer", "por"];
+  var SO_MAR = { agua: 1, potencia: 1, periodo: 1 };
+  function quadrosNaTela() {
+    var r = {}, usados = {}, q = ["q1", "q2", "q3", "q4"], mar = !!(estado && estado.m);
+    q.forEach(function (p) { if (mar || !SO_MAR[escolhas[p]]) { r[p] = escolhas[p]; usados[escolhas[p]] = 1; } });
+    q.forEach(function (p) {
+      if (r[p]) return;
+      var op = [TERRA[p]].concat(ORDEM_TERRA).filter(function (k) { return !usados[k]; })[0] || TERRA[p];
+      r[p] = op; usados[op] = 1;
+    });
+    return r;
+  }
   var PARTES = {
     grande: { titulo: "Número grande", sub: "à esquerda", opcoes: GRANDES },
     q1: { titulo: "Quadro 1", sub: "em cima, à esquerda", opcoes: QUADROS },
@@ -338,11 +353,8 @@
     var mar = !!e.m;
     var g = mar ? escolhas.grande : "temperatura";
     var baixo = mar ? escolhas.baixo : "sol";
-    var qs = ["q1", "q2", "q3", "q4"].map(function (q) {
-      var k = escolhas[q];
-      if (!mar && (k === "agua" || k === "potencia" || k === "periodo")) k = TERRA[q];
-      return celula(k);
-    });
+    var naTela = quadrosNaTela();
+    var qs = ["q1", "q2", "q3", "q4"].map(function (q) { return celula(naTela[q]); });
 
     if (g === "ondas") {
       t.txt(6, L1, "po", "ondas");
@@ -796,24 +808,27 @@
   function abrirParte(parte) {
     var def = PARTES[parte];
     var original = escolhas[parte];
+    /* a marca vai no que a tela mostra, que longe do mar pode ser o dado de terra no lugar do escolhido */
+    var marcado = /^q\d$/.test(parte) ? quadrosNaTela()[parte] : original;
     aberto = { parte: parte, desfazer: function () { escolhas[parte] = original; } };
     document.querySelector('.pd-area[data-parte="' + parte + '"]').classList.add("pd-ativa");
     var lista = el("div", { class: "pd-opcoes", role: "radiogroup", "aria-labelledby": "pd-folha-titulo" });
     def.opcoes.forEach(function (op) {
       var soMar = op[2] && !(estado && estado.m);
       var b = el("button", {
-        class: "pd-opcao" + (op[0] === original ? " pd-sel" : "") + (soMar ? " pd-somar" : ""),
-        type: "button", role: "radio", "aria-checked": String(op[0] === original),
+        class: "pd-opcao" + (op[0] === marcado ? " pd-sel" : "") + (soMar ? " pd-somar" : ""),
+        type: "button", role: "radio", "aria-checked": String(op[0] === marcado),
         /* prévia ao passar o mouse, só com mouse de verdade: no celular, o toque gera esses eventos
            depois, fora de hora, e desfazia a escolha que acabou de ser feita */
         onpointerenter: function (ev) { if (ev.pointerType === "mouse" && emPrevia(parte) && !soMar) { escolhas[parte] = op[0]; pintar(canvas); } },
         onpointerleave: function (ev) { if (ev.pointerType === "mouse" && emPrevia(parte)) { escolhas[parte] = original; pintar(canvas); } },
-        onclick: function () { escolher(parte, op[0], b); }
+        onclick: function () { if (!soMar) escolher(parte, op[0], b); }
       }, [
         el("span", { class: "pd-opcao-nome", text: op[1] }),
         el("span", { class: "pd-opcao-valor", text: soMar ? "só perto do mar" : resumoOpcao(parte, op[0]) }),
         el("span", { class: "pd-marca-sel", "aria-hidden": "true" })
       ]);
+      if (soMar) { b.disabled = true; b.setAttribute("aria-disabled", "true"); }
       lista.appendChild(b);
     });
     abrirFolha(el("div", {}, [cabecalho(def.titulo, def.sub), lista]), ".pd-sel");
