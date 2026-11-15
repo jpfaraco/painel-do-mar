@@ -651,7 +651,8 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
     var z = b.getAttribute("data-z").split(",").map(Number), p = bits.dados, x0 = 999, y0 = 999, x1 = -1, y1 = -1;
     for (var yy = z[1]; yy <= z[3]; yy++) for (var xx = z[0]; xx <= z[2]; xx++) if (p[yy * W + xx]) { x0 = Math.min(x0, xx); y0 = Math.min(y0, yy); x1 = Math.max(x1, xx); y1 = Math.max(y1, yy); }
     var r = [x0 - 3, y0 - 3, x1 - x0 + 7, y1 - y0 + 7];
-    var vd = painelLer.querySelector(".vidro"), base = painelLer.getBoundingClientRect(), v = vd.getBoundingClientRect();
+    /* a caixa é posicionada em relação ao .alvo, que no celular tem 8 px de respiro em cima */
+    var vd = painelLer.querySelector(".vidro"), base = realce.offsetParent.getBoundingClientRect(), v = vd.getBoundingClientRect();
     var pad = parseFloat(getComputedStyle(vd).paddingLeft), padT = parseFloat(getComputedStyle(vd).paddingTop);
     var s = (v.width - 2 * pad) / W;
     realce.style.left = v.left - base.left + pad + r[0] * s + "px";
