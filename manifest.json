@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.2.ota.bin",
-        "md5": "2cf7997435d66932662e1f42d5c4040e",
-        "summary": "Busca de lugar acima do teclado do celular"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.3.ota.bin",
+        "md5": "b8780452d7dd00e95e3b8c6091d0b78f",
+        "summary": "Versão visível na página e escolhas da tela que não se desfazem no celular"
       }
     }
   ]

@@ -8,7 +8,7 @@ substitutions:
   senha_config: "configurar"
   # Versão deste arquivo. Para lançar uma atualização, aumente o número aqui
   # e o mesmo número no manifest.json do repositório.
-  versao: "1.2.2"
+  versao: "1.2.3"
   # Endereço que os painéis consultam a cada 6 horas para saber se há versão nova
   manifesto: "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/manifest.json"
 
@@ -322,6 +322,11 @@ text_sensor:
     id: estado
     name: "estado"
     update_interval: never
+  # versão gravada, para a página mostrar desde o começo (o update só sabe depois de consultar o GitHub)
+  - platform: template
+    name: "firmware"
+    lambda: return {"${versao}"};
+    update_interval: 1h
   - platform: wifi_info
     ip_address:
       id: ip_txt

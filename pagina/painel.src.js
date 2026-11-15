@@ -471,13 +471,15 @@
         try { estado = JSON.parse(j.state || j.value || "null"); } catch (e) { return; }
         atualizar();
       } else if (dom === "select" && escolhas.hasOwnProperty(nome)) {
-        if (!aberto) escolhas[nome] = j.value || j.state; atualizar();
+        if (!aberto || aberto.parte !== nome) escolhas[nome] = j.value || j.state; atualizar();
       } else if (dom === "text" && nome === "nome") {
-        if (!aberto) escolhas.nome = j.value || j.state || ""; atualizar();
+        if (!aberto || aberto.parte !== "titulo") escolhas.nome = j.value || j.state || ""; atualizar();
       } else if (dom === "update") {
         versao.situacao = j.state || ""; versao.nova = j.value || "";
         if (j.current_version) versao.atual = j.current_version;
         atualizarPainel();
+      } else if (dom === "text_sensor" && nome === "firmware") {
+        versao.atual = j.state || versao.atual; atualizarPainel();
       } else if (dom === "text_sensor" && nome === "ip") {
         ip = j.state || ip; atualizarPainel();
       }
@@ -786,8 +788,10 @@
       var b = el("button", {
         class: "pd-opcao" + (op[0] === original ? " pd-sel" : "") + (soMar ? " pd-somar" : ""),
         type: "button", role: "radio", "aria-checked": String(op[0] === original),
-        onmouseenter: function () { if (!soMar) { escolhas[parte] = op[0]; pintar(canvas); } },
-        onmouseleave: function () { escolhas[parte] = original; pintar(canvas); },
+        /* prévia ao passar o mouse, só com mouse de verdade: no celular, o toque gera esses eventos
+           depois, fora de hora, e desfazia a escolha que acabou de ser feita */
+        onpointerenter: function (ev) { if (ev.pointerType === "mouse" && emPrevia(parte) && !soMar) { escolhas[parte] = op[0]; pintar(canvas); } },
+        onpointerleave: function (ev) { if (ev.pointerType === "mouse" && emPrevia(parte)) { escolhas[parte] = original; pintar(canvas); } },
         onclick: function () { escolher(parte, op[0], b); }
       }, [
         el("span", { class: "pd-opcao-nome", text: op[1] }),
@@ -799,7 +803,10 @@
     abrirFolha(el("div", {}, [cabecalho(def.titulo, def.sub), lista]), ".pd-sel");
   }
 
+  function emPrevia(parte) { return !!aberto && aberto.parte === parte && !aberto.escolhido; }
+
   function escolher(parte, k, botao) {
+    aberto.escolhido = true;
     document.querySelectorAll(".pd-opcao").forEach(function (b) { b.classList.remove("pd-sel"); b.setAttribute("aria-checked", "false"); });
     botao.classList.add("pd-sel"); botao.setAttribute("aria-checked", "true");
     escolhas[parte] = k;
