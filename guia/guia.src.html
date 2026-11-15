@@ -36,6 +36,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .wrap { max-width: 1080px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -.02em; }
 p, li { text-wrap: pretty; }
+.nq { white-space: nowrap; }
 p { margin: 0; }
 button { font: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
@@ -228,7 +229,7 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
         <button class="btn btn-forte" type="button" id="comecar">Configurar passo a passo</button>
         <a class="btn btn-leve" href="#passo-1">Ver todos os passos</a>
       </div>
-      <p class="duracao">Leva uns 3 minutos. Você só precisa do celular e da senha do Wi-Fi de casa.</p>
+      <p class="duracao">Leva uns 3 minutos. Você só precisa do celular e da senha do <span class="nq">Wi-Fi</span> de&nbsp;casa.</p>
     </div>
   </header>
 
@@ -236,7 +237,7 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
     <ol>
       <li><a href="#passo-1">Ligue na tomada</a></li>
       <li><a href="#passo-2">Entre na rede do painel</a></li>
-      <li><a href="#passo-3">Escolha o Wi-Fi de casa</a></li>
+      <li><a href="#passo-3">Escolha o <span class="nq">Wi-Fi</span> de casa</a></li>
       <li><a href="#passo-4">Abra a página do painel</a></li>
       <li><a href="#passo-5">Escolha o lugar</a></li>
       <li><a href="#passo-6">Pronto</a></li>
@@ -251,9 +252,9 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-1" data-passo="1">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 1</p>
+        <p class="num">Passo&nbsp;1</p>
         <h2>Ligue na tomada</h2>
-        <p class="l">Use o carregador e o cabo que vieram junto. Em uns 30 segundos, a tela mostra um código.</p>
+        <p class="l">Use o carregador e o cabo que vieram junto. Em uns 30 segundos, a tela mostra um&nbsp;código.</p>
       </div>
       <div class="ilustra revela">
         <figure class="so-painel">
@@ -267,10 +268,10 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-2" data-passo="2">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 2</p>
+        <p class="num">Passo&nbsp;2</p>
         <h2>Entre na rede do painel</h2>
-        <p class="l">Abra a câmera do celular, aponte para o código e toque no aviso que aparecer.</p>
-        <p class="nota">Se a câmera não mostrar o aviso, entre nos ajustes de Wi-Fi do celular e escolha a rede <b>Painel do Mar</b>, com a senha <b>configurar</b>.</p>
+        <p class="l">Abra a câmera do celular, aponte para o código e toque no aviso que&nbsp;aparecer.</p>
+        <p class="nota">Se a câmera não mostrar o aviso, entre nos ajustes de <span class="nq">Wi-Fi</span> do celular e escolha a rede <b>Painel do Mar</b>, com a senha <b>configurar</b>.</p>
       </div>
       <div class="ilustra revela">
         <figure class="com-cel">
@@ -291,10 +292,10 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-3" data-passo="3">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 3</p>
-        <h2>Escolha o <span class="nw">Wi-Fi</span> de casa</h2>
-        <p class="l">Uma página abre sozinha, em inglês. Toque no Wi-Fi da sua casa, digite a senha em <b>Password</b> e toque em <b>Save</b>.</p>
-        <p class="nota">O painel só funciona em redes de <b>2,4 GHz</b>. Se aparecerem duas redes da casa, como <b>Casa</b> e <b>Casa_5G</b>, escolha a que não termina em 5G.</p>
+        <p class="num">Passo&nbsp;3</p>
+        <h2>Escolha o <span class="nw"><span class="nq">Wi-Fi</span></span> de casa</h2>
+        <p class="l">Uma página abre sozinha, em inglês. Toque no <span class="nq">Wi-Fi</span> da sua casa, digite a senha em <b>Password</b> e toque em <b>Save</b>.</p>
+        <p class="nota">O painel só funciona em redes de <b>2,4 GHz</b>. Se aparecerem duas redes da casa, como <b>Casa</b> e <b>Casa_5G</b>, escolha a que não termina em&nbsp;5G.</p>
       </div>
       <div class="ilustra revela">
         <figure class="com-cel">
@@ -323,10 +324,10 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-4" data-passo="4">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 4</p>
+        <p class="num">Passo&nbsp;4</p>
         <h2>Abra a página do painel</h2>
-        <p class="l">Volte o celular para o Wi-Fi de casa. A tela mostra outro código: aponte a câmera e toque no aviso.</p>
-        <p class="nota">O endereço embaixo do código também funciona digitado no navegador, com o celular no Wi-Fi de casa.</p>
+        <p class="l">Volte o celular para o <span class="nq">Wi-Fi</span> de casa. A tela mostra outro código: aponte a câmera e toque no&nbsp;aviso.</p>
+        <p class="nota">O endereço embaixo do código também funciona digitado no navegador, com o celular no <span class="nq">Wi-Fi</span> de&nbsp;casa.</p>
       </div>
       <div class="ilustra revela">
         <figure class="painel-lado">
@@ -351,10 +352,10 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-5" data-passo="5">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 5</p>
+        <p class="num">Passo&nbsp;5</p>
         <h2>Escolha o lugar</h2>
-        <p class="l">Toque em <b>Lugar</b>, escreva o nome da praia, do bairro ou da cidade e toque no lugar certo.</p>
-        <p class="nota">A lista mostra o estado e o país de cada resultado, para não confundir lugares com o mesmo nome.</p>
+        <p class="l">Toque em <b>Lugar</b>, escreva o nome da praia, do bairro ou da cidade e toque no lugar&nbsp;certo.</p>
+        <p class="nota">A lista mostra o estado e o país de cada resultado, para não confundir lugares com o mesmo&nbsp;nome.</p>
       </div>
       <div class="ilustra revela">
         <figure class="com-cel">
@@ -372,9 +373,9 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   <section class="passo" id="passo-6" data-passo="6">
     <div class="wrap grade">
       <div class="texto revela">
-        <p class="num">Passo 6</p>
+        <p class="num">Passo&nbsp;6</p>
         <h2>Pronto</h2>
-        <p class="l">Em alguns segundos, a tela mostra o mar e o tempo do lugar. A partir daqui, ela se atualiza sozinha a cada 30 minutos.</p>
+        <p class="l">Em alguns segundos, a tela mostra o mar e o tempo do lugar. A partir daqui, ela se atualiza sozinha a cada 30&nbsp;minutos.</p>
       </div>
       <div class="ilustra revela">
         <figure class="so-painel">
@@ -387,28 +388,28 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
 
   <div class="rodape-passo">
     <button class="btn btn-leve" type="button" id="voltar">Voltar</button>
-    <span class="contador" id="contador">1 de 6</span>
+    <span class="contador" id="contador">1 de&nbsp;6</span>
     <button class="btn btn-forte" type="button" id="seguir">Próximo</button>
   </div>
 
   <section class="ler" id="ler">
     <div class="wrap">
       <h2 class="revela">Como ler a tela</h2>
-      <p class="intro revela">Toque num item da lista para ver onde ele fica.</p>
+      <p class="intro revela">Toque num item da lista para ver onde ele&nbsp;fica.</p>
       <div class="grade">
         <div class="alvo revela">
           <div class="painel" data-tela="dados" id="painel-ler" role="img" aria-label="A tela do painel com os dados de Copacabana"></div>
           <div class="realce" id="realce" aria-hidden="true"></div>
         </div>
         <ol class="legenda revela" id="legenda">
-          <li><button type="button" data-z="0,0,133,23"><div><b>Lugar</b><span>Dá para escrever outro nome na página do painel.</span></div></button></li>
-          <li><button type="button" data-z="134,0,295,23"><div><b>Céu e hora</b><span>A hora acompanha o fuso do lugar.</span></div></button></li>
-          <li><button type="button" data-z="0,25,146,76"><div><b>Altura das ondas</b><span>Em metros, agora.</span></div></button></li>
-          <li><button type="button" data-z="0,77,146,98"><div><b>Direção e ritmo das ondas</b><span>A seta aponta para onde as ondas vão. “A cada 10 s” é o tempo entre uma onda e a próxima: quanto maior, mais força tem o mar.</span></div></button></li>
-          <li><button type="button" data-z="150,25,295,60"><div><b>Água e ar</b><span>Temperatura da água do mar e do ar, em graus.</span></div></button></li>
-          <li><button type="button" data-z="150,61,214,98"><div><b>Vento</b><span>Velocidade, com a seta apontando para onde ele sopra.</span></div></button></li>
-          <li><button type="button" data-z="215,61,295,98"><div><b>Índice UV</b><span>Força do sol agora, de baixo a extremo.</span></div></button></li>
-          <li><button type="button" data-z="0,100,295,127"><div><b>Maré de hoje</b><span>A curva vai da meia-noite à meia-noite, e a bolinha é agora. O texto diz a próxima maré alta ou baixa.</span></div></button></li>
+          <li><button type="button" data-z="0,0,133,23"><div><b>Lugar</b><span>Dá para escrever outro nome na página do&nbsp;painel.</span></div></button></li>
+          <li><button type="button" data-z="134,0,295,23"><div><b>Céu e hora</b><span>A hora acompanha o fuso do&nbsp;lugar.</span></div></button></li>
+          <li><button type="button" data-z="0,25,146,76"><div><b>Altura das ondas</b><span>Em metros,&nbsp;agora.</span></div></button></li>
+          <li><button type="button" data-z="0,77,146,98"><div><b>Direção e ritmo das ondas</b><span>A seta aponta para onde as ondas vão. “A cada 10 s” é o tempo entre uma onda e a próxima: quanto maior, mais força tem o&nbsp;mar.</span></div></button></li>
+          <li><button type="button" data-z="150,25,295,60"><div><b>Água e ar</b><span>Temperatura da água do mar e do ar, em&nbsp;graus.</span></div></button></li>
+          <li><button type="button" data-z="150,61,214,98"><div><b>Vento</b><span>Velocidade, com a seta apontando para onde ele&nbsp;sopra.</span></div></button></li>
+          <li><button type="button" data-z="215,61,295,98"><div><b>Índice UV</b><span>Força do sol agora, de baixo a&nbsp;extremo.</span></div></button></li>
+          <li><button type="button" data-z="0,100,295,127"><div><b>Maré de hoje</b><span>A curva vai da meia-noite à meia-noite, e a bolinha é agora. O texto diz a próxima maré alta ou&nbsp;baixa.</span></div></button></li>
         </ol>
       </div>
     </div>
@@ -418,8 +419,8 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
     <div class="wrap grade">
       <div class="revela">
         <h2>Mude o que aparece</h2>
-        <p class="l">Na página do painel, as partes com contorno azul podem ser trocadas. Toque numa delas e escolha o que ela mostra. O painel muda em alguns segundos.</p>
-        <p class="nota">Longe do mar, a tela troca sozinha as ondas e a maré pela temperatura e pelo nascer e pôr do sol.</p>
+        <p class="l">Na página do painel, as partes com contorno azul podem ser trocadas. Toque numa delas e escolha o que ela mostra. O painel muda em alguns&nbsp;segundos.</p>
+        <p class="nota">Longe do mar, a tela troca sozinha as ondas e a maré pela temperatura e pelo nascer e pôr do&nbsp;sol.</p>
       </div>
       <div class="ilustra revela">
         <figure class="com-cel">
@@ -445,7 +446,7 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
       <h2 class="revela">Bom saber</h2>
       <dl class="revela">
         <div><dt>Para voltar à página</dt><dd>Tire o painel da tomada e ligue de novo. Por 30 segundos, a tela mostra o código da página. Use sempre esse código, porque o endereço pode mudar depois de uma falta de luz.</dd></div>
-        <div><dt>Se trocar de Wi-Fi ou de senha</dt><dd>Em até 2 minutos, a tela volta a mostrar “Configurar Wi-Fi”. É só repetir os passos 2 e 3.</dd></div>
+        <div><dt>Se trocar de <span class="nq">Wi-Fi</span> ou de senha</dt><dd>Em até 2 minutos, a tela volta a mostrar “Configurar <span class="nq">Wi-Fi</span>”. É só repetir os passos 2 e 3.</dd></div>
         <div><dt>Falta de luz</dt><dd>A tela continua mostrando a última imagem, porque o papel eletrônico não gasta energia parado. Quando a luz volta, o painel se reconecta sozinho.</dd></div>
         <div><dt>Atualizações</dt><dd>O painel se atualiza pela internet. Se a tela mostrar “Atualizando”, deixe na tomada por uns 2 minutos.</dd></div>
         <div><dt>Para apagar tudo</dt><dd>Tire e ponha o cabo 5 vezes seguidas, com menos de 10 segundos entre uma e outra. O painel volta ao passo 1.</dd></div>
@@ -455,7 +456,7 @@ body.modo-passo .rodape-passo { display: flex; position: fixed; bottom: 0; left:
   </section>
 
   <footer><div class="wrap">
-    <span>Painel do Mar. Feito à mão no Rio de Janeiro.</span>
+    <span>Painel do Mar. Feito à mão no Rio de&nbsp;Janeiro.</span>
     <span>O projeto é de código aberto: firmware, caixa e instruções para montar o seu estão no <a href="https://github.com/jpfaraco/painel-do-mar"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>.</span>
   </div></footer>
 </main>
