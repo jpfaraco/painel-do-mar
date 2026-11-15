@@ -758,6 +758,7 @@
     f.innerHTML = ""; f.appendChild(conteudo);
     antesDeAbrir = document.activeElement;
     raiz.classList.add("pd-aberta");
+    raiz.querySelector(".pd-palco").inert = true;
     setTimeout(function () { var x = foco ? f.querySelector(foco) : f.querySelector("button,input"); if (x) x.focus({ preventScroll: true }); }, 60);
   }
   function fechar() {
@@ -765,6 +766,7 @@
     var parte = aberto;
     aberto = null;
     raiz.classList.remove("pd-aberta");
+    raiz.querySelector(".pd-palco").inert = false;
     document.querySelectorAll(".pd-area.pd-ativa").forEach(function (b) { b.classList.remove("pd-ativa"); });
     if (parte.desfazer) parte.desfazer();
     atualizar();

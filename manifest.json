@@ -1,13 +1,13 @@
 {
   "name": "Painel do Mar",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.4.ota.bin",
-        "md5": "67fe2e66713dd7d86f541981f22b0ed0",
-        "summary": "Atualização completa da tela de verdade a cada mudança"
+        "path": "https://raw.githubusercontent.com/jpfaraco/painel-do-mar/main/ota/painel-do-mar-1.2.5.ota.bin",
+        "md5": "ad03f9364d80aa38cdd7e4218bcff53c",
+        "summary": "Com uma escolha aberta, os outros blocos da tela ficam bloqueados"
       }
     }
   ]

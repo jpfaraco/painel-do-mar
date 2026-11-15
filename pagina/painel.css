@@ -56,6 +56,9 @@ body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit
 .pd-aberta .pd-palco{z-index:15}
 .pd-aberta .pd-dica{visibility:hidden}
 .pd-aberta .pd-palco{background:transparent}
+/* com uma folha aberta, a tela fica só como prévia: os toques nela passam para o véu e fecham a folha */
+.pd-aberta .pd-palco{pointer-events:none}
+.pd-aberta .pd-area:not(.pd-ativa){opacity:.3}
 .pd-folha-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .pd-folha-cab h3{margin:0;font-size:20px;font-weight:600;line-height:1.25;text-wrap:balance}
 .pd-folha-cab small{display:block;color:var(--mut);font-size:14px;margin-top:2px}
