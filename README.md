@@ -14,7 +14,8 @@ Placa ESP32-C3 Super Mini com display e-ink WeAct de 2,9" preto e branco (SSD168
 - `scripts/publicar-atualizacao.sh`: publica uma versão nova (ver abaixo).
 - `firmware/fonts/`: Pixel Operator e Jersey 15 (esta só para `pagina/glifos.py`, porque o firmware a baixa do Google Fonts com `gfonts://`).
 - `firmware/secrets.example.yaml`: modelo do `secrets.yaml`, que fica fora do git.
-- `docs/como-configurar.txt`: instruções que acompanham o presente.
+- `docs/`: o site https://paineldomar.com.br, servido pelo GitHub Pages a partir desta pasta. É o guia ilustrado de configuração para quem ganha o painel. `docs/como-configurar.txt` é a versão em texto.
+- `guia/`: a fonte do site. Depois de mudar `guia.src.html`, rode `python3 guia/montar.py`. Se o desenho da tela mudar no firmware, rode antes `python3 guia/gerar_telas.py`.
 - `case/`: caixa impressa em 3D, com os STL e os scripts em Python que geram as peças.
 
 ## Compilar e gravar
