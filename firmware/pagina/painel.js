@@ -529,7 +529,7 @@
     document.title = "Painel do Mar";
     if (!document.querySelector('meta[name="viewport"]')) {
       var vp = document.createElement("meta");
-      vp.name = "viewport"; vp.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+      vp.name = "viewport"; vp.content = "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content";
       document.head.appendChild(vp);
     }
     var esp = document.querySelector("esp-app"); if (esp) esp.hidden = true;
@@ -696,7 +696,7 @@
       b.hidden = !estado || !estado.d || telaEspecial() || (semMar && (p === "grande" || p === "baixo"));
     });
     document.getElementById("pd-lugar-nome").textContent = estado && estado.n ? estado.n : "Nenhum lugar escolhido";
-    document.getElementById("pd-lugar-desc").textContent = estado && estado.desc ? estado.desc : "Toque para procurar";
+    document.getElementById("pd-lugar-desc").textContent = estado && estado.desc ? estado.desc : estado && estado.n ? "Toque para trocar" : "Toque para procurar";
     document.getElementById("pd-dica").textContent = !estado ? "" :
       estado.t === 4 ? "O painel está instalando uma versão nova. Não tire da tomada." :
       estado.t === 2 && estado.n ? "O painel acabou de ligar. Os dados do lugar aparecem na tela em alguns segundos." :
@@ -730,6 +730,27 @@
 
   /* ---------- folhas (painéis que sobem de baixo) ---------- */
   var antesDeAbrir = null;
+  /* Folha acima do teclado. No Chrome do Android, o interactive-widget do viewport já encolhe a página
+     quando o teclado abre. No Safari, o teclado cobre a página e só a área visível (visualViewport)
+     encolhe, então a folha sobe a altura do teclado. Com o teclado aberto, a folha pode crescer
+     até o alto da área visível, para caber o campo e a lista de resultados. */
+  function ajustarFolha() {
+    var f = document.getElementById("pd-folha"), vv = window.visualViewport;
+    if (!f) return;
+    var alto = vv ? vv.height : window.innerHeight;
+    var teclado = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    var digitando = document.activeElement && document.activeElement.tagName === "INPUT" && f.contains(document.activeElement);
+    f.style.bottom = teclado + "px";
+    f.style.maxHeight = (digitando ? alto - 12 : Math.min(alto * 0.6, 560)) + "px";
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", ajustarFolha);
+    window.visualViewport.addEventListener("scroll", ajustarFolha);
+  }
+  window.addEventListener("resize", ajustarFolha);
+  document.addEventListener("focusin", function () { setTimeout(ajustarFolha, 50); });
+  document.addEventListener("focusout", function () { setTimeout(ajustarFolha, 50); });
+
   function abrirFolha(conteudo, foco) {
     var f = document.getElementById("pd-folha");
     f.innerHTML = ""; f.appendChild(conteudo);
